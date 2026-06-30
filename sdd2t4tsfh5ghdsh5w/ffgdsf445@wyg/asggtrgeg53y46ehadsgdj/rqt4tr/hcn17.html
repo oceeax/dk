@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>t系列文件专属加载系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+        }
+        .sidebar-left {
+            background: #1a1a1a;
+            min-height: 100vh;
+            padding: 25px 15px;
+        }
+        .sidebar-right {
+            background: #1a1a1a;
+            min-height: 100vh;
+            padding: 25px 15px;
+        }
+        .main-container {
+            background: #222222;
+            min-height: 100vh;
+            padding: 30px;
+        }
+        .menu-btn {
+            width: 100%;
+            margin-bottom: 10px;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .menu-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .content-box {
+            white-space: pre-wrap;
+            background: #2b2b2b;
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 25px;
+            min-height: 600px;
+            font-size: 15px;
+            line-height: 1.7;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .tip-text {
+            color: #aaaaaa;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+        .loading-tip {
+            color: #ffc107;
+        }
+        .success-tip {
+            color: #5cd96e;
+        }
+        #csv-content-box {
+            white-space: pre-wrap;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .control-bar {
+            background: #333;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .path-text {
+            color: #87cefa;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- 左侧边栏：11个按钮，对应t1.csv~t11.csv -->
+        <div class="col-md-2 sidebar-left">
+            <h4 class="text-center mb-4">左侧菜单（11项）</h4>
+            <hr>
+            <button class="btn btn-success menu-btn" data-index="1" disabled>t1.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="2" disabled>t2.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="3" disabled>t3.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="4" disabled>t4.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="5" disabled>t5.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="6" disabled>t6.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="7" disabled>t7.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="8" disabled>t8.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="9" disabled>t9.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="10" disabled>t10.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="11" disabled>t11.csv 未加载</button>
+
+            <div class="tip-text">
+                <p>对应 t1.csv ~ t11.csv<br>点击加载对应CSV + 全部TXT内容</p>
+            </div>
+        </div>
+
+        <!-- 中间主内容区域 -->
+        <div class="col-md-8 main-container">
+            <div class="control-bar">
+                <input type="file" id="folder-input" webkitdirectory multiple>
+                <button class="btn btn-warning" id="resetBtn">重置清空</button>
+                <label class="checkbox-inline text-white">
+                    <input type="checkbox" id="showTxtPath" checked> 显示TXT所属文件夹路径
+                </label>
+                <span class="loading-tip" id="folder-tip">请选择存放t系列CSV、TXT的根文件夹</span>
+            </div>
+            <div id="csv-content-box" class="alert alert-info"></div>
+            <p class="success-tip" id="load-status"></p>
+            <div class="content-box" id="txt-all-content"></div>
+        </div>
+
+        <!-- 右侧边栏：12个按钮，对应t12.csv~t23.csv -->
+        <div class="col-md-2 sidebar-right">
+            <h4 class="text-center mb-4">右侧菜单（12项）</h4>
+            <hr>
+            <button class="btn btn-default menu-btn" data-index="12" disabled>t12.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="13" disabled>t13.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="14" disabled>t14.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="15" disabled>t15.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="16" disabled>t16.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="17" disabled>t17.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="18" disabled>t18.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="19" disabled>t19.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="20" disabled>t20.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="21" disabled>t21.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="22" disabled>t22.csv 未加载</button>
+            <button class="btn btn-default menu-btn" data-index="23" disabled>t23.csv 未加载</button>
+
+            <div class="tip-text">
+                <p>对应 t12.csv ~ t23.csv<br>总计23个菜单按钮</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"></script>
+
+<script>
+// 全局存储t系列文件数据
+let tCsvData = {}; // key: 数字1-23，value: csv文件信息
+let tTxtData = []; // 所有t系列txt文件
+
+// 重置按钮
+$('#resetBtn').click(function () {
+    location.reload();
+});
+
+// 文件夹选择监听，仅匹配t开头的csv/txt文件
+document.getElementById('folder-input').addEventListener('change', async function (e) {
+    const files = Array.from(e.target.files);
+    const total = files.length;
+    tCsvData = {};
+    tTxtData = [];
+    $('#folder-tip').text(`开始扫描t系列文件，总文件数：${total}，请稍候...`);
+
+    for (let i = 0; i < total; i++) {
+        const file = files[i];
+        const fileName = file.name;
+        const progress = ((i + 1) / total * 100).toFixed(1);
+        $('#folder-tip').text(`正在扫描：${file.webkitRelativePath}  进度：${progress}%`);
+        const text = await file.text();
+
+        // 仅匹配t开头的csv文件，格式：t数字.csv
+        if (/^t\d+\.csv$/i.test(fileName)) {
+            const num = parseInt(fileName.match(/t(\d+)\.csv/i)[1]);
+            if (num >= 1 && num <= 23) { // 仅处理1-23号CSV
+                const firstLine = text.trim().split(/\r?\n/)[0] || `t${num}.csv`;
+                tCsvData[num] = {
+                    fileName: fileName,
+                    filePath: file.webkitRelativePath,
+                    content: text,
+                    btnName: firstLine
+                };
+            }
+        }
+        // 仅匹配t开头的txt文件，格式：t数字.txt
+        else if (/^t\d+\.txt$/i.test(fileName)) {
+            tTxtData.push({
+                filePath: file.webkitRelativePath,
+                content: text
+            });
+        }
+    }
+
+    // 绑定按钮文字和状态
+    const btns = $('.menu-btn');
+    btns.each(function () {
+        const num = parseInt($(this).data('index'));
+        if (tCsvData[num]) {
+            $(this).text(tCsvData[num].btnName).prop('disabled', false);
+        } else {
+            $(this).text(`t${num}.csv 未找到`).prop('disabled', true);
+        }
+    });
+
+    $('#folder-tip').text(`扫描完成！成功读取 ${Object.keys(tCsvData).length} 个t系列CSV文件，${tTxtData.length} 个t系列TXT文件`);
+    $('#csv-content-box').text('请点击侧边按钮查看对应t系列CSV内容');
+    renderAllTxt();
+});
+
+// 渲染所有t系列TXT内容
+function renderAllTxt() {
+    const showPath = $('#showTxtPath').is(':checked');
+    let allText = '';
+    // 按t1.txt、t2.txt...顺序排序
+    tTxtData.sort((a, b) => {
+        const numA = parseInt(a.filePath.match(/t(\d+)\.txt/i)[1]);
+        const numB = parseInt(b.filePath.match(/t(\d+)\.txt/i)[1]);
+        return numA - numB;
+    });
+    tTxtData.forEach(item => {
+        if (showPath) {
+            allText += `\n【文件路径：${item.filePath}】\n`;
+        }
+        allText += item.content + '\n\n';
+    });
+    $('#txt-all-content').text(allText);
+    $('#load-status').text('所有t系列TXT文件已按顺序加载完成');
+}
+
+// 复选框切换是否显示TXT路径
+$('#showTxtPath').change(renderAllTxt);
+
+// 按钮点击事件
+$('.menu-btn').click(function () {
+    const num = parseInt($(this).data('index'));
+    const csvItem = tCsvData[num];
+    if (!csvItem) return;
+    // 展示当前CSV内容
+    $('#csv-content-box').html(`<span class="path-text">文件路径：${csvItem.filePath}</span>\n\n${csvItem.content}`);
+    // 刷新TXT内容
+    renderAllTxt();
+});
+</script>
+</body>
+</html>
