@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+        }
+        .sidebar-left {
+            background: #1a1a1a;
+            min-height: 100vh;
+            padding: 25px 15px;
+        }
+        .sidebar-right {
+            background: #1a1a1a;
+            min-height: 100vh;
+            padding: 25px 15px;
+        }
+        .main-container {
+            background: #222222;
+            min-height: 100vh;
+            padding: 30px;
+        }
+        .menu-btn {
+            width: 100%;
+            margin-bottom: 10px;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .menu-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .content-box {
+            white-space: pre-wrap;
+            background: #2b2b2b;
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 25px;
+            min-height: 600px;
+            font-size: 15px;
+            line-height: 1.7;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        h4, hr, .tip-text, .control-bar, #folder-tip {
+            display: none;
+        }
+        #csv-content-box {
+            white-space: pre-wrap;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- 左侧11个按钮 t1~t11 -->
+        <div class="col-md-2 sidebar-left">
+            <button class="btn btn-success menu-btn" data-num="1" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="2" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="3" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="4" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="5" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="6" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="7" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="8" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="9" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="10" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="11" disabled></button>
+        </div>
+
+        <!-- 中间内容区域 -->
+        <div class="col-md-8 main-container">
+            <div id="csv-content-box" class="alert alert-info"></div>
+            <p id="load-status"></p>
+            <div class="content-box" id="txt-all-content"></div>
+        </div>
+
+        <!-- 右侧12个按钮 t12~t23 -->
+        <div class="col-md-2 sidebar-right">
+            <button class="btn btn-default menu-btn" data-num="12" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="13" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="14" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="15" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="16" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="17" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="18" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="19" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="20" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="21" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="22" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="23" disabled></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"></script>
+
+<script>
+const csvCache = {};
+let allTxt = "";
+
+// 页面初始化自动加载CSV填充按钮
+async function loadCSVList() {
+    const btnArr = $(".menu-btn");
+    for (const btn of btnArr) {
+        const num = $(btn).data("num");
+        try {
+            // 强制禁用浏览器缓存，每次都拉最新文件
+            const res = await fetch(`t${num}.csv`, { cache: "no-cache" });
+            if (res.ok) {
+                const text = await res.text();
+                csvCache[num] = text;
+                const firstLine = text.trim().split(/\r?\n/)[0] || "";
+                $(btn).text(firstLine).prop("disabled", false);
+            } else {
+                $(btn).text("").prop("disabled", true);
+            }
+        } catch {
+            $(btn).text("").prop("disabled", true);
+        }
+    }
+    // 加载全部TXT
+    await loadAllTxtFile();
+}
+
+// 批量加载 t1 ~ t50.txt
+async function loadAllTxtFile() {
+    allTxt = "";
+    for (let i = 1; i <= 50; i++) {
+        try {
+            const resp = await fetch(`t${i}.txt`, { cache: "no-cache" });
+            if (resp.ok) {
+                const content = await resp.text();
+                allTxt += content + "\n\n";
+            }
+        } catch {}
+    }
+    $("#txt-all-content").text(allTxt);
+}
+
+// 按钮点击展示对应CSV内容
+$(".menu-btn").click(function () {
+    const num = $(this).data("num");
+    if (!csvCache[num]) return;
+    $("#csv-content-box").text(csvCache[num]);
+    $("#txt-all-content").text(allTxt);
+});
+
+// DOM加载完成自动执行
+$(document).ready(function () {
+    loadCSVList();
+});
+</script>
+</body>
+</html>
