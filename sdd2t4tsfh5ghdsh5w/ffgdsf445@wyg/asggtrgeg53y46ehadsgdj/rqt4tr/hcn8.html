@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title></title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/zip-js@2.7.2/dist/zip.min.js"></script>
+<style>
+body {
+    background-color: #121212;
+    color: #ffffff;
+}
+.sidebar-left {
+    background: #1a1a1a;
+    min-height: 100vh;
+    padding: 25px 15px;
+}
+.sidebar-right {
+    background: #1a1a1a;
+    min-height: 100vh;
+    padding: 25px 15px;
+}
+.main-container {
+    background: #222222;
+    min-height: 100vh;
+    padding: 30px;
+}
+.menu-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.menu-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.content-box {
+    white-space: pre-wrap;
+    background: #2b2b2b;
+    padding: 25px;
+    border-radius: 8px;
+    margin-top: 25px;
+    min-height: 600px;
+    font-size: 15px;
+    line-height: 1.7;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+h4, hr, .tip-text, #folder-tip, .control-bar {
+    display: none;
+}
+#csv-content-box {
+    white-space: pre-wrap;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #333;
+    padding:15px;
+    border-radius:6px;
+}
+/* 密码弹窗 */
+#passwordModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+.modal-box {
+    background: #222;
+    padding: 30px;
+    border-radius: 10px;
+    width: 320px;
+}
+</style>
+</head>
+<body>
+
+<!-- 全局解锁弹窗（只首次弹出） -->
+<div id="passwordModal">
+    <div class="modal-box">
+        <h4 style="color:#fff;margin-bottom:20px">请输入访问解密密码</h4>
+        <input type="password" id="globalPwdInput" class="form-control" placeholder="输入ZIP压缩包统一密码">
+        <button id="unlockBtn" class="btn btn-primary btn-block" style="margin-top:15px">解锁进入</button>
+    </div>
+</div>
+
+<div class="container-fluid" style="display:none" id="mainPage">
+    <div class="row">
+        <!-- 左侧1~11按钮 -->
+        <div class="col-md-2 sidebar-left">
+            <button class="btn btn-success menu-btn" data-num="1" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="2" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="3" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="4" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="5" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="6" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="7" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="8" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="9" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="10" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="11" disabled></button>
+        </div>
+
+        <!-- 中间内容 -->
+        <div class="col-md-8 main-container">
+            <div id="csv-content-box"></div>
+            <div id="txt-all-content" class="content-box"></div>
+        </div>
+
+        <!-- 右侧12~23按钮 -->
+        <div class="col-md-2 sidebar-right">
+            <button class="btn btn-default menu-btn" data-num="12" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="13" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="14" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="15" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="16" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="17" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="18" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="19" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="20" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="21" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="22" disabled></button>
+            <button class="btn btn-default menu-btn" data-num="23" disabled></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"></script>
+<script>
+// =====================【切换系列只改这里字母】=====================
+const PREFIX = "8";  
+// a → a_data.zip   b → b_data.zip   t → t_data.zip   y → y_data.zip
+// =================================================================
+
+let globalZipPassword = ""; // 全局解锁密码（一次输入全局生效）
+const csvMap = {};
+const txtMap = {};
+let allTxtMerge = "";
+const ZIP_NAME = `${PREFIX}_data.zip`;
+
+// 解锁按钮
+$("#unlockBtn").click(function(){
+    globalZipPassword = $("#globalPwdInput").val().trim();
+    if(!globalZipPassword){
+        alert("请输入密码");
+        return;
+    }
+    $("#passwordModal").hide();
+    $("#mainPage").show();
+    loadCurrentZip();
+});
+
+// 加载当前系列加密压缩包
+async function loadCurrentZip(){
+    // 清空上一组数据
+    Object.keys(csvMap).forEach(k=>delete csvMap[k]);
+    Object.keys(txtMap).forEach(k=>delete txtMap[k]);
+    allTxtMerge = "";
+    $(".menu-btn").text("").prop("disabled",true);
+    $("#csv-content-box").text("");
+    $("#txt-all-content").text("");
+
+    try{
+        const res = await fetch(ZIP_NAME, { cache: "no-cache" });
+        const blob = await res.blob();
+        // 使用全局密码解密
+        const reader = new zip.ZipReader(new zip.BlobReader(blob), {
+            password: globalZipPassword
+        });
+        const entries = await reader.getEntries();
+
+        const csvReg = new RegExp(`^${PREFIX}(\\d+)\\.csv$`, 'i');
+        const txtReg = new RegExp(`^${PREFIX}(\\d+)\\.txt$`, 'i');
+
+        for(const entry of entries){
+            if(entry.directory) continue;
+            const name = entry.filename;
+
+            // 匹配当前系列CSV
+            const csvMatch = name.match(csvReg);
+            if(csvMatch){
+                const num = parseInt(csvMatch[1]);
+                const text = await entry.getData(new zip.TextWriter());
+                csvMap[num] = text;
+                const firstLine = text.trim().split(/\r?\n/)[0] || "";
+                $(`.menu-btn[data-num="${num}"]`).text(firstLine).prop("disabled",false);
+            }
+
+            // 匹配当前系列TXT
+            const txtMatch = name.match(txtReg);
+            if(txtMatch){
+                const num = parseInt(txtMatch[1]);
+                const text = await entry.getData(new zip.TextWriter());
+                txtMap[num] = text;
+            }
+        }
+
+        await reader.close();
+
+        // 按顺序拼接所有txt内容
+        allTxtMerge = "";
+        for(let i=1;i<=50;i++){
+            if(txtMap[i]) allTxtMerge += txtMap[i] + "\n\n";
+        }
+        $("#txt-all-content").text(allTxtMerge);
+
+    }catch(err){
+        console.error("解密失败：密码错误 / 压缩包加密格式不对",err);
+        alert("解压解密失败，请检查：\n1.密码是否和ZIP解压密码一致\n2.必须用7-Zip AES-256加密");
+        $("#passwordModal").show();
+    }
+}
+
+// 按钮点击查看CSV内容
+$(".menu-btn").click(function(){
+    const num = $(this).data("num");
+    if(!csvMap[num]) return;
+    $("#csv-content-box").text(csvMap[num]);
+    $("#txt-all-content").text(allTxtMerge);
+});
+</script>
+</body>
+</html>
