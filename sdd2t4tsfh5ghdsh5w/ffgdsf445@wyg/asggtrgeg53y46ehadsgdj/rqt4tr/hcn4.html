@@ -62,13 +62,33 @@
             padding:15px;
             border-radius:6px;
         }
+
+        /* 手机电脑自适应 */
+        @media (max-width: 992px) {
+            .sidebar-left,
+            .sidebar-right {
+                min-height: auto;
+                padding: 15px 10px;
+            }
+            .main-container {
+                padding: 15px 10px;
+            }
+            .content-box {
+                min-height: 400px;
+                font-size: 14px;
+                padding: 15px;
+            }
+            .menu-btn {
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
 <body>
 <div class="container-fluid">
     <div class="row">
         <!-- 左侧11个按钮 1~11 -->
-        <div class="col-md-2 sidebar-left">
+        <div class="col-md-2 col-sm-12 sidebar-left">
             <button class="btn btn-success menu-btn" data-num="1" disabled></button>
             <button class="btn btn-default menu-btn" data-num="2" disabled></button>
             <button class="btn btn-default menu-btn" data-num="3" disabled></button>
@@ -83,13 +103,13 @@
         </div>
 
         <!-- 中间内容区域 -->
-        <div class="col-md-8 main-container">
+        <div class="col-md-8 col-sm-12 main-container">
             <div id="csv-content-box"></div>
             <div id="txt-all-content" class="content-box"></div>
         </div>
 
         <!-- 右侧12个按钮 12~23 -->
-        <div class="col-md-2 sidebar-right">
+        <div class="col-md-2 col-sm-12 sidebar-right">
             <button class="btn btn-default menu-btn" data-num="12" disabled></button>
             <button class="btn btn-default menu-btn" data-num="13" disabled></button>
             <button class="btn btn-default menu-btn" data-num="14" disabled></button>
@@ -110,83 +130,95 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"></script>
 
 <script>
-// =====================【唯一修改行，只改引号里的字母】=====================
-const PREFIX = "a"; 
-// 切换系列只改这里："t" / "y" / "a" / "b" / "c"
+// =====================【只改这里一个字母切换系列】=====================
+const PREFIX = "a";  
+// 修改这里：a / b / t / y
+// 自动加载：a_dada.zip / b_dada.zip / t_dada.zip / y_dada.zip
 // =======================================================================
+const ZIP_NAME = `${PREFIX}_dada.zip`;
 
 const csvMap = {};
 const txtMap = {};
 let allTxtMerge = "";
 
-// 加载并解压共用压缩包 data.zip
+// 加载并解压zip
 async function loadAndUnzip(zipUrl) {
     const res = await fetch(zipUrl, { cache: "no-cache" });
+    if (!res.ok) throw new Error("文件不存在");
     const blob = await res.blob();
     return await JSZip.loadAsync(blob);
 }
 
 async function initLoadZip() {
+    // 清空旧数据
+    Object.keys(csvMap).forEach(k => delete csvMap[k]);
+    Object.keys(txtMap).forEach(k => delete txtMap[k]);
+    allTxtMerge = "";
+    $("#csv-content-box").text("");
+    $("#txt-all-content").text("");
+    $(".menu-btn").text("").prop("disabled", true);
+
     try {
-        const zip = await loadAndUnzip("data.zip");
+        const zip = await loadAndUnzip(ZIP_NAME);
         const csvReadPromises = [];
         const txtReadPromises = [];
 
-        // 自动生成匹配规则，不需要手动改正则
+        // 匹配 前缀+数字.csv / .txt
         const csvReg = new RegExp(`^${PREFIX}(\\d+)\\.csv$`, 'i');
         const txtReg = new RegExp(`^${PREFIX}(\\d+)\\.txt$`, 'i');
 
         zip.forEach((relativePath, entry) => {
             if (entry.dir) return;
+            const fileName = relativePath.toLowerCase();
 
-            // 匹配当前系列 CSV 文件
-            const csvMatch = relativePath.match(csvReg);
+            const csvMatch = fileName.match(csvReg);
             if (csvMatch) {
                 const num = parseInt(csvMatch[1]);
-                const p = entry.async("string").then(text => {
-                    csvMap[num] = text;
-                    const firstLine = text.trim().split(/\r?\n/)[0] || "";
-                    $(`.menu-btn[data-num="${num}"]`).text(firstLine).prop("disabled", false);
-                });
-                csvReadPromises.push(p);
+                if(num < 1 || num > 23) return;
+                csvReadPromises.push(
+                    entry.async("string").then(text => {
+                        csvMap[num] = text;
+                        const firstLine = text.trim().split(/\r?\n/)[0] || `第${num}项`;
+                        $(`.menu-btn[data-num="${num}"]`).text(firstLine).prop("disabled", false);
+                    })
+                );
             }
 
-            // 匹配当前系列 TXT 文件
-            const txtMatch = relativePath.match(txtReg);
+            const txtMatch = fileName.match(txtReg);
             if (txtMatch) {
                 const num = parseInt(txtMatch[1]);
-                const p = entry.async("string").then(text => {
-                    txtMap[num] = text;
-                });
-                txtReadPromises.push(p);
+                if(num < 1 || num > 23) return;
+                txtReadPromises.push(
+                    entry.async("string").then(text => {
+                        txtMap[num] = text;
+                    })
+                );
             }
         });
 
-        // 等待全部文件读取完成
         await Promise.all(csvReadPromises);
         await Promise.all(txtReadPromises);
 
-        // 按 1~50 顺序拼接所有文本
+        // 按1~23顺序合并txt
         allTxtMerge = "";
-        for (let i = 1; i <= 50; i++) {
+        for (let i = 1; i <= 23; i++) {
             if (txtMap[i]) allTxtMerge += txtMap[i] + "\n\n";
         }
         $("#txt-all-content").text(allTxtMerge);
 
     } catch (err) {
-        console.error("data.zip 加载失败：", err);
+        console.error(`${ZIP_NAME} 加载失败：`, err);
+        $("#csv-content-box").text(`无法加载 ${ZIP_NAME}，请确认压缩包和HTML放在同一个文件夹内，内部文件为${PREFIX}1.csv、${PREFIX}1.txt格式`);
     }
 }
 
-// 按钮点击切换内容
+// 按钮点击查看对应CSV
 $(".menu-btn").click(function () {
     const num = $(this).data("num");
     if (!csvMap[num]) return;
     $("#csv-content-box").text(csvMap[num]);
-    $("#txt-all-content").text(allTxtMerge);
 });
 
-// 页面加载自动执行
 $(document).ready(initLoadZip);
 </script>
 </body>
