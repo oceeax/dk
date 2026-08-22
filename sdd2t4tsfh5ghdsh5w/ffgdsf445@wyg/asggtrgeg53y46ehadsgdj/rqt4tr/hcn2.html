@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>8合1全能编译器（VS简约版‑纯HTML单文件）</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;background:#1e1e1e;color:#fff;display:flex;flex-direction:column}
+.top{
+  position:fixed;top:0;left:0;right:0;height:70px;
+  background:#252526;display:flex;align-items:center;gap:8px;padding:0 10px;z-index:10;
+}
+body{padding-top:70px;padding-bottom:80px}
+.btn{padding:12px 14px;border:0;border-radius:4px;color:#fff;font-weight:normal;font-size:14px}
+#open{background:#0e639c}
+#clear{background:#be1100}
+#run{background:#094771;color:#fff}
+select{padding:12px;border-radius:4px;background:#3c3c3c;color:#fff;border:0;font-size:14px;flex:1}
+.editorWrap{
+    flex:1;
+    display:flex;
+    min-height:220px;
+    position:relative;
+}
+#lines{
+  width:55px;background:#1e1e1e;color:#858585;padding:15px 6px;
+  font-family:Consolas,Monaco,"Courier New",monospace;
+  font-size:14px;line-height:1.5;
+  text-align:right;overflow:hidden;user-select:none;
+  border-right:1px solid #2d2d2d;
+}
+.editor{
+  overflow:hidden;
+  flex:1;
+  background:#1e1e1e;
+  color:#d4d4d4;
+  border:0;
+  outline:0;
+  padding:15px;
+  font-family:Consolas,Monaco,"Courier New",monospace;
+  font-size:14px;
+  resize:none;
+  line-height:1.5;
+  overflow-y:hidden;
+}
+/*自定义滚动条外层轨道*/
+.scrollTrack{
+    width:14px;
+    background:#2d2d2d;
+    cursor:pointer;
+}
+/*可拖动滑块*/
+.scrollThumb{
+    width:100%;
+    background:#5a5a5a;
+    border-radius:7px;
+    cursor:grab;
+}
+.scrollThumb:active{
+    cursor:grabbing;
+    background:#777;
+}
+.progress{height:6px;background:#2d2d2d;margin:10px 15px;overflow:hidden}
+.bar{height:100%;width:0%;background:#007acc;transition:width 0.3s}
+.status{text-align:left;color:#bbbbbb;font-size:13px;margin:0 15px 5px}
+.bottom{
+  position:fixed;bottom:0;left:0;right:0;height:70px;
+  background:#252526;display:flex;align-items:center;gap:8px;padding:0 10px;z-index:10;
+}
+input{padding:12px;border-radius:4px;background:#3c3c3c;color:#fff;border:0;flex:1}
+#save{background:#0e639c}
+.logBox{
+  margin:12px 15px;
+  min-height:180px;
+  background:#1e1e1e;
+  border:1px solid #2d2d2d;
+  border-radius:4px;
+  padding:14px;
+  color:#4ec9b0;
+  font-family:Consolas,Monaco,"Courier New",monospace;
+  font-size:14px;
+  white-space:pre-wrap;
+  overflow-y:auto;
+}
+.logBox.error{
+  color:#f14c4c;
+}
+</style>
+</head>
+<body>
+<div class="top">
+<button class="btn" id="open">打开文件</button>
+<button class="btn" id="clear">清空</button>
+<select id="lang">
+<option value="js">JavaScript</option>
+<option value="py">Python</option>
+<option value="lua">Lua</option>
+<option value="java">Java</option>
+<option value="go">Go</option>
+<option value="php">PHP</option>
+<option value="ruby">Ruby</option>
+<option value="c">C语言</option>
+</select>
+<button class="btn" id="run">运行</button>
+</div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="status" id="status">准备就绪</div>
+<div class="editorWrap">
+  <div id="lines">1</div>
+  <textarea class="editor" id="code"></textarea>
+  <div class="scrollTrack" id="scrollTrack">
+        <div class="scrollThumb" id="scrollThumb"></div>
+  </div>
+</div>
+<div class="logBox" id="logBox"></div>
+<div class="bottom">
+<input id="name" value="test">
+<select id="ext">
+<option value=".html">HTML</option>
+<option value=".js">JS</option>
+<option value=".py">PY</option>
+<option value=".lua">LUA</option>
+<option value=".java">JAVA</option>
+<option value=".go">GO</option>
+<option value=".php">PHP</option>
+<option value=".rb">RUBY</option>
+<option value=".c">C</option>
+<option value=".txt">TXT</option>
+</select>
+<button class="btn" id="save">保存文件</button>
+</div>
+<script>
+var code = document.getElementById('code');
+var logBox = document.getElementById('logBox');
+var lang = document.getElementById('lang');
+var bar = document.getElementById('bar');
+var status = document.getElementById('status');
+var lines = document.getElementById('lines');
+var scrollTrack = document.getElementById('scrollTrack');
+var scrollThumb = document.getElementById('scrollThumb');
+var isDrag = false;
+var dragStartY;
+var startScrollTop;
+
+// 更新行号
+function updateLines() {
+  var count = code.value.split('\n').length;
+  var html = '';
+  for (var i = 1; i <= count; i++) html += i + '<br>';
+  lines.innerHTML = html;
+  updateThumb();
+}
+
+//滚动同步
+function syncScroll(){
+    lines.scrollTop = code.scrollTop;
+    updateThumb();
+}
+
+//更新滑块位置和高度
+function updateThumb(){
+    const ratio = code.clientHeight / code.scrollHeight;
+    let thumbH = Math.max(ratio * scrollTrack.clientHeight, 30);
+    scrollThumb.style.height = thumbH + "px";
+    const maxTrack = scrollTrack.clientHeight - thumbH;
+    const maxScroll = code.scrollHeight - code.clientHeight;
+    let pos = 0;
+    if(maxScroll>0){
+        pos = (code.scrollTop / maxScroll) * maxTrack;
+    }
+    scrollThumb.style.transform = `translateY(${pos}px)`;
+}
+
+//鼠标滚轮单行滚动
+code.addEventListener("wheel", function(e){
+    e.preventDefault();
+    const lineHeight = 21;
+    if(e.deltaY > 0){
+        code.scrollTop += lineHeight;
+    }else{
+        code.scrollTop -= lineHeight;
+    }
+    syncScroll();
+},{passive:false});
+
+//滑块拖拽
+scrollThumb.addEventListener('mousedown',function(e){
+    isDrag=true;
+    dragStartY=e.clientY;
+    startScrollTop=code.scrollTop;
+    e.preventDefault();
+})
+document.addEventListener('mousemove',function(e){
+    if(!isDrag) return;
+    const dy = e.clientY - dragStartY;
+    const maxTrack = scrollTrack.clientHeight - scrollThumb.offsetHeight;
+    const maxScroll = code.scrollHeight - code.clientHeight;
+    if(maxTrack>0){
+        code.scrollTop = startScrollTop + (dy/maxTrack)*maxScroll;
+        syncScroll();
+    }
+})
+document.addEventListener('mouseup',function(){
+    isDrag=false;
+})
+//点击轨道空白直接跳转
+scrollTrack.addEventListener('mousedown',function(e){
+    if(e.target===scrollThumb) return;
+    const rect = scrollTrack.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const thumbH = scrollThumb.offsetHeight;
+    const maxTrack = scrollTrack.clientHeight - thumbH;
+    const maxScroll = code.scrollHeight - code.clientHeight;
+    if(maxTrack>0){
+        code.scrollTop = (clickY/maxTrack)*maxScroll;
+        syncScroll();
+    }
+})
+
+code.addEventListener('input', updateLines);
+code.addEventListener('scroll', syncScroll);
+updateLines();
+
+function setProgress(p, text, color) {
+  bar.style.width = p + '%';
+  bar.style.background = color || '#007acc';
+  status.textContent = text;
+}
+document.getElementById('clear').onclick = function() {
+  code.value = '';
+  logBox.textContent = '';
+  logBox.className = 'logBox';
+  updateLines();
+  setProgress(0, '准备就绪');
+};
+document.getElementById('open').onclick = function() {
+  var i = document.createElement('input');
+  i.type = 'file';
+  i.onchange = function(e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    setProgress(30, '加载文件...');
+    var r = new FileReader();
+    r.onload = function() {
+      code.value = r.result;
+      updateLines();
+      code.setSelectionRange(code.value.length, code.value.length);
+      code.scrollTop = code.scrollHeight;
+      lines.scrollTop = code.scrollTop;
+      setProgress(100, '文件加载成功');
+    };
+    r.readAsText(f);
+  };
+  i.click();
+};
+document.getElementById('save').onclick = function() {
+  setProgress(40, '保存中...');
+  var n = document.getElementById('name').value || 'file';
+  var e = document.getElementById('ext').value;
+  var b = new Blob([code.value]);
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = n + e;
+  a.click();
+  setProgress(100, '保存成功');
+};
+document.getElementById('run').onclick = async function() {
+  logBox.textContent = '';
+  logBox.className = 'logBox';
+  var c = code.value.trim();
+  if (!c) {
+    setProgress(100, '❌ 代码为空', '#f14c4c');
+    logBox.textContent = "未输入任何代码，无法执行";
+    logBox.classList.add("error");
+    return;
+  }
+  if (c.includes('<html') || document.getElementById('ext').value === '.html') {
+    try {
+      var w = window.open();
+      w.document.write(c);
+      setProgress(100, '✅ 页面已打开');
+      logBox.textContent = "HTML页面已在新标签页打开";
+      return;
+    } catch(err) {
+      setProgress(100, '❌ 浏览器拦截', '#f14c4c');
+      logBox.textContent = "打开新页面失败，浏览器弹窗拦截，请关闭拦截后重试";
+      logBox.classList.add("error");
+      return;
+    }
+  }
+  //纯浏览器无法运行py/c/java/go/php/ruby/lua后端代码
+  setProgress(100, '⚠️ 当前纯HTML模式，仅支持运行HTML', '#ffaa00');
+  logBox.textContent = "提示：纯单文件网页没有后端服务器，不能运行 Python / C / Java / Go / Lua / PHP / Ruby\n如需执行这些语言，请使用原先Flask服务版本";
+};
+</script>
+</body>
+</html>
