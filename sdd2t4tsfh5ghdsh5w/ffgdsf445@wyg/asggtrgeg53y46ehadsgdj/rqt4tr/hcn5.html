@@ -2,17 +2,28 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+
+<meta name="viewport"
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no">
 
 <title>GitHub 文件管理器</title>
 
 <style>
+
 *{
     box-sizing:border-box;
     margin:0;
     padding:0;
-    font-family:system-ui,-apple-system,BlinkMacSystemFont,
-    "Segoe UI","Microsoft YaHei",sans-serif;
+    font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Microsoft YaHei",
+        sans-serif;
 }
 
 body{
@@ -80,6 +91,11 @@ button:hover{
     background:#4088f0;
 }
 
+button:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
+
 button.gray{
     background:#555;
 }
@@ -99,9 +115,9 @@ button.del:hover{
 .progress-wrap{
     display:none;
     width:100%;
-    height:14px;
+    height:16px;
     background:#333;
-    border-radius:7px;
+    border-radius:8px;
     overflow:hidden;
     margin-top:12px;
 }
@@ -110,14 +126,15 @@ button.del:hover{
     width:0%;
     height:100%;
     background:#2d78e4;
-    transition:.15s;
+    transition:width .1s;
 }
 
 #progressText{
     display:none;
     color:#aaa;
     font-size:13px;
-    margin-top:6px;
+    margin-top:7px;
+    word-break:break-word;
 }
 
 .status{
@@ -195,6 +212,22 @@ button.del:hover{
     gap:10px;
 }
 
+.warning{
+    color:#e6b85c;
+    background:#302a1d;
+    padding:10px;
+    border-radius:5px;
+    margin-top:10px;
+    font-size:12px;
+    line-height:1.6;
+}
+
+.limit{
+    color:#aaa;
+    font-size:12px;
+    margin-top:8px;
+}
+
 @media(max-width:600px){
 
     body{
@@ -221,15 +254,21 @@ button.del:hover{
         padding:10px 12px;
     }
 }
+
 </style>
 </head>
 
 <body>
 
-<!-- GitHub 设置 -->
+
+<!-- ================================
+     GitHub 设置
+================================ -->
+
 <div class="box">
 
 <h3>GitHub 设置</h3>
+
 
 <label>GitHub Token</label>
 
@@ -241,6 +280,7 @@ button.del:hover{
     spellcheck="false"
 >
 
+
 <label>GitHub 用户名</label>
 
 <input
@@ -248,7 +288,9 @@ button.del:hover{
     id="username"
     placeholder="例如：osvs"
     autocomplete="off"
+    spellcheck="false"
 >
+
 
 <label>仓库名称</label>
 
@@ -257,23 +299,43 @@ button.del:hover{
     id="repo"
     placeholder="例如：my-files"
     autocomplete="off"
+    spellcheck="false"
 >
+
 
 <label>目录</label>
 
 <input
     type="text"
     id="folder"
-    placeholder="例如：images/2026（留空=根目录）"
+    placeholder="例如：videos/2026，留空=根目录"
     autocomplete="off"
     spellcheck="false"
 >
 
+
 <div class="small">
-目录支持多级，例如：images/2026/photo
-<br>
+
+目录支持多级，例如：
+
+videos/2026
+
+images/photo
+
+files/test
+
 留空则使用仓库根目录。
+
 </div>
+
+
+<div class="limit">
+
+单个文件最大：
+<strong>100 MB</strong>
+
+</div>
+
 
 <div class="btn-row">
 
@@ -281,29 +343,46 @@ button.del:hover{
 测试连接
 </button>
 
-<button class="gray" onclick="loadFiles()">
+<button
+    class="gray"
+    onclick="loadFiles()">
+
 刷新文件
+
 </button>
 
 </div>
 
-<div class="status" id="status">
+
+<div
+    id="status"
+    class="status">
+
 等待操作
-</div>
 
 </div>
 
+</div>
 
-<!-- 上传 -->
+
+
+<!-- ================================
+     上传
+================================ -->
+
 <div class="box">
 
 <h3>上传文件</h3>
 
+
 <div class="btn-row">
 
 <button id="btnSelect">
+
 选择本地文件上传
+
 </button>
+
 
 <input
     type="file"
@@ -313,119 +392,171 @@ button.del:hover{
 
 </div>
 
-<div class="progress-wrap" id="progressWrap">
+
+<div
+    class="progress-wrap"
+    id="progressWrap">
+
 <div id="progressBar"></div>
-</div>
-
-<div id="progressText"></div>
 
 </div>
 
 
-<!-- 文件列表 -->
+<div
+    id="progressText">
+</div>
+
+</div>
+
+
+
+<!-- ================================
+     文件列表
+================================ -->
+
 <div class="box">
 
 <div class="title-row">
 
 <h3>当前目录文件</h3>
 
+
 <button
     class="gray"
     onclick="loadFiles()">
+
 刷新
+
 </button>
 
 </div>
 
+
 <div id="fileList">
 
 <div class="empty">
-请先填写 GitHub 信息
-</div>
+
+填写 GitHub 信息后刷新
 
 </div>
 
 </div>
+
+</div>
+
 
 
 <script>
 
-/* ================================
+
+/* =====================================
+   常量
+===================================== */
+
+/*
+   100 MB
+
+   使用十进制 MB：
+   100 × 1000 × 1000
+*/
+
+const MAX_FILE_SIZE =
+    100 * 1000 * 1000;
+
+
+/* =====================================
    DOM
-================================ */
+===================================== */
 
 const tokenInput =
-document.getElementById("token");
+    document.getElementById("token");
 
 const usernameInput =
-document.getElementById("username");
+    document.getElementById("username");
 
 const repoInput =
-document.getElementById("repo");
+    document.getElementById("repo");
 
 const folderInput =
-document.getElementById("folder");
+    document.getElementById("folder");
 
 const fileInput =
-document.getElementById("fileInput");
-
-const fileList =
-document.getElementById("fileList");
-
-const statusBox =
-document.getElementById("status");
-
-const progressWrap =
-document.getElementById("progressWrap");
-
-const progressBar =
-document.getElementById("progressBar");
-
-const progressText =
-document.getElementById("progressText");
+    document.getElementById("fileInput");
 
 const btnSelect =
-document.getElementById("btnSelect");
+    document.getElementById("btnSelect");
+
+const fileList =
+    document.getElementById("fileList");
+
+const statusBox =
+    document.getElementById("status");
+
+const progressWrap =
+    document.getElementById("progressWrap");
+
+const progressBar =
+    document.getElementById("progressBar");
+
+const progressText =
+    document.getElementById("progressText");
 
 
-/* ================================
+/* =====================================
    获取配置
-================================ */
+===================================== */
 
 function getConfig(){
 
     const token =
-    tokenInput.value.trim();
+        tokenInput.value.trim();
 
     const username =
-    usernameInput.value.trim();
+        usernameInput.value.trim();
 
     const repo =
-    repoInput.value.trim();
+        repoInput.value.trim();
 
     let folder =
-    folderInput.value.trim();
+        folderInput.value.trim();
+
 
     /*
-       统一目录格式
+       清理目录前后的 /
     */
 
     folder =
-    folder
-    .replace(/^\/+/, "")
-    .replace(/\/+$/, "");
+        folder
+        .replace(/^\/+/,"")
+        .replace(/\/+$/,"");
+
 
     if(!token){
-        throw new Error("请输入 GitHub Token");
+
+        throw new Error(
+            "请输入 GitHub Token"
+        );
+
     }
+
 
     if(!username){
-        throw new Error("请输入 GitHub 用户名");
+
+        throw new Error(
+            "请输入 GitHub 用户名"
+        );
+
     }
 
+
     if(!repo){
-        throw new Error("请输入仓库名称");
+
+        throw new Error(
+            "请输入仓库名称"
+        );
+
     }
+
 
     return {
         token,
@@ -433,64 +564,90 @@ function getConfig(){
         repo,
         folder
     };
+
 }
 
 
-/* ================================
-   拼接 GitHub API 地址
-================================ */
+/* =====================================
+   GitHub API 基础地址
+===================================== */
 
-function apiUrl(path=""){
+function repositoryApi(){
 
     const cfg =
-    getConfig();
+        getConfig();
+
+    return (
+        "https://api.github.com/repos/" +
+        encodeURIComponent(
+            cfg.username
+        ) +
+        "/" +
+        encodeURIComponent(
+            cfg.repo
+        )
+    );
+
+}
+
+
+/* =====================================
+   生成文件 API URL
+===================================== */
+
+function contentsApi(path=""){
 
     let url =
-    "https://api.github.com/repos/" +
-    encodeURIComponent(cfg.username) +
-    "/" +
-    encodeURIComponent(cfg.repo) +
-    "/contents";
+        repositoryApi() +
+        "/contents";
 
-    /*
-       当前目录
-    */
-
-    if(cfg.folder){
-
-        url += "/" +
-        cfg.folder
-        .split("/")
-        .map(x =>
-            encodeURIComponent(x)
-        )
-        .join("/");
-
-    }
-
-    /*
-       当前目录下的文件
-    */
 
     if(path){
 
         url += "/" +
-        path
-        .split("/")
-        .map(x =>
-            encodeURIComponent(x)
-        )
-        .join("/");
+            path
+            .split("/")
+            .map(
+                part =>
+                encodeURIComponent(part)
+            )
+            .join("/");
 
     }
 
+
     return url;
+
 }
 
 
-/* ================================
+/* =====================================
+   当前目录 API URL
+===================================== */
+
+function currentDirectoryApi(){
+
+    const cfg =
+        getConfig();
+
+
+    if(!cfg.folder){
+
+        return contentsApi();
+
+    }
+
+
+    return contentsApi(
+        cfg.folder
+    );
+
+}
+
+
+/* =====================================
    GitHub 请求
-================================ */
+===================================== */
 
 async function githubRequest(
     url,
@@ -498,7 +655,8 @@ async function githubRequest(
 ){
 
     const cfg =
-    getConfig();
+        getConfig();
+
 
     const headers = {
 
@@ -506,111 +664,168 @@ async function githubRequest(
         "application/vnd.github+json",
 
         "Authorization":
-        "Bearer " + cfg.token,
+        "Bearer " +
+        cfg.token,
 
         "X-GitHub-Api-Version":
         "2022-11-28",
 
         ...options.headers
+
     };
 
-    const response =
-    await fetch(
-        url,
-        {
-            ...options,
-            headers
-        }
-    );
 
-    let data=null;
+    const response =
+        await fetch(
+            url,
+            {
+                ...options,
+                headers
+            }
+        );
+
+
+    let data = null;
+
 
     try{
-        data=await response.json();
+
+        data =
+            await response.json();
+
     }catch(e){}
+
 
     if(!response.ok){
 
-        let msg =
-        "GitHub API 错误：" +
-        response.status;
+        let message =
+            "GitHub API 错误：" +
+            response.status;
 
-        if(data && data.message){
-            msg +=
-            " - " +
-            data.message;
+
+        if(
+            data &&
+            data.message
+        ){
+
+            message +=
+                " - " +
+                data.message;
+
         }
 
-        throw new Error(msg);
+
+        throw new Error(
+            message
+        );
+
     }
 
+
     return data;
+
 }
 
 
-/* ================================
+/* =====================================
    测试连接
-================================ */
+===================================== */
 
 async function testConnection(){
 
     try{
 
         setStatus(
-            "正在测试连接..."
+            "正在测试 GitHub 连接..."
         );
 
-        const cfg =
-        getConfig();
 
         const data =
-        await githubRequest(
-            "https://api.github.com/repos/" +
-            encodeURIComponent(
-                cfg.username
-            ) +
-            "/" +
-            encodeURIComponent(
-                cfg.repo
-            )
-        );
+            await githubRequest(
+                repositoryApi()
+            );
+
 
         setStatus(
             "连接成功：" +
             data.full_name
         );
 
+
         await loadFiles();
 
-    }catch(err){
+
+    }catch(error){
 
         setStatus(
-            err.message,
+            "连接失败：" +
+            error.message,
             true
         );
+
     }
+
 }
 
 
-/* ================================
+/* =====================================
    选择文件
-================================ */
+===================================== */
 
-btnSelect.onclick=()=>{
+btnSelect.onclick = function(){
+
     fileInput.click();
+
 };
 
 
-fileInput.onchange=async function(e){
+fileInput.onchange =
+async function(event){
 
     const files =
-    e.target.files;
+        event.target.files;
 
-    if(!files.length){
+
+    if(
+        !files ||
+        files.length === 0
+    ){
+
         return;
+
     }
 
+
     try{
+
+        /*
+           先检查全部文件大小。
+           防止传到一半才发现超限。
+        */
+
+        for(
+            const file of files
+        ){
+
+            if(
+                file.size >
+                MAX_FILE_SIZE
+            ){
+
+                throw new Error(
+                    file.name +
+                    " 超过 100 MB，" +
+                    "无法上传。"
+                );
+
+            }
+
+        }
+
+
+        /*
+           逐个上传
+        */
 
         for(
             let i=0;
@@ -626,36 +841,48 @@ fileInput.onchange=async function(e){
 
         }
 
+
         await loadFiles();
 
-    }catch(err){
+
+    }catch(error){
 
         setStatus(
             "上传失败：" +
-            err.message,
+            error.message,
             true
         );
+
     }
 
-    fileInput.value="";
+
+    /*
+       允许再次选择同一个文件
+    */
+
+    fileInput.value = "";
+
 };
 
 
-/* ================================
+/* =====================================
    ArrayBuffer → Base64
-================================ */
+===================================== */
 
 function arrayBufferToBase64(
     buffer
 ){
 
     const bytes =
-    new Uint8Array(buffer);
+        new Uint8Array(buffer);
+
 
     const chunkSize =
-    0x8000;
+        0x8000;
 
-    let binary="";
+
+    let binary = "";
+
 
     for(
         let i=0;
@@ -664,27 +891,61 @@ function arrayBufferToBase64(
     ){
 
         const chunk =
-        bytes.subarray(
-            i,
-            Math.min(
-                i+chunkSize,
-                bytes.length
-            )
-        );
+            bytes.subarray(
+                i,
+                Math.min(
+                    i + chunkSize,
+                    bytes.length
+                )
+            );
+
 
         binary +=
-        String.fromCharCode(
-            ...chunk
-        );
+            String.fromCharCode(
+                ...chunk
+            );
+
     }
 
+
     return btoa(binary);
+
 }
 
 
-/* ================================
-   上传
-================================ */
+/* =====================================
+   生成当前目录中的文件路径
+===================================== */
+
+function makeFilePath(
+    filename
+){
+
+    const cfg =
+        getConfig();
+
+
+    if(
+        !cfg.folder
+    ){
+
+        return filename;
+
+    }
+
+
+    return (
+        cfg.folder +
+        "/" +
+        filename
+    );
+
+}
+
+
+/* =====================================
+   上传文件
+===================================== */
 
 async function uploadFile(
     file,
@@ -692,117 +953,145 @@ async function uploadFile(
     total
 ){
 
-    const cfg =
-    getConfig();
+    if(
+        file.size >
+        MAX_FILE_SIZE
+    ){
+
+        throw new Error(
+            file.name +
+            " 超过 100 MB"
+        );
+
+    }
+
 
     showProgress(
         0,
-        "读取：" + file.name
+        "准备：" +
+        file.name
     );
-
-    const buffer =
-    await file.arrayBuffer();
-
-    showProgress(
-        20,
-        "处理：" + file.name
-    );
-
-    const base64 =
-    arrayBufferToBase64(buffer);
 
 
     /*
-       当前目录 + 文件名
-
-       例如：
-
-       folder = images/2026
-
-       path =
-       images/2026/a.jpg
+       读取文件
     */
 
-    const fullPath =
-    cfg.folder
-    ? cfg.folder + "/" + file.name
-    : file.name;
+    const buffer =
+        await file.arrayBuffer();
 
 
-    let sha=null;
+    showProgress(
+        20,
+        "正在处理：" +
+        file.name
+    );
 
 
-    /* 检查文件是否存在 */
+    /*
+       GitHub Contents API
+       要求 Base64 内容
+    */
+
+    const base64 =
+        arrayBufferToBase64(
+            buffer
+        );
+
+
+    /*
+       当前目录下的完整路径
+    */
+
+    const path =
+        makeFilePath(
+            file.name
+        );
+
+
+    let sha = null;
+
+
+    /*
+       检查旧文件
+    */
 
     try{
 
         const old =
-        await githubRequest(
-            apiUrl(file.name)
-        );
+            await githubRequest(
+                contentsApi(path)
+            );
 
-        if(old && old.sha){
-            sha=old.sha;
+
+        if(
+            old &&
+            old.sha
+        ){
+
+            sha =
+                old.sha;
+
         }
 
-    }catch(err){
+    }catch(error){
 
         /*
-           404 = 不存在
+           404 = 文件不存在
         */
 
         if(
-            !err.message.includes("404")
+            !error.message.includes(
+                "404"
+            )
         ){
-            throw err;
+
+            throw error;
+
         }
+
     }
 
 
     showProgress(
         50,
         sha
-        ? "覆盖：" + file.name
-        : "上传：" + file.name
+        ? "正在覆盖：" + file.name
+        : "正在上传：" + file.name
     );
 
 
-    const body={
+    const body = {
 
         message:
-        sha
-        ? "更新文件：" + file.name
-        : "上传文件：" + file.name,
+            sha
+            ? "更新文件：" +
+              file.name
+            : "上传文件：" +
+              file.name,
 
-        content:base64
+        content:
+            base64
+
     };
 
 
+    /*
+       覆盖文件必须提供 sha
+    */
+
     if(sha){
-        body.sha=sha;
+
+        body.sha =
+            sha;
+
     }
 
 
-    /*
-       注意这里使用 fullPath。
-
-       因此上传位置就是：
-       指定目录 + 文件名
-    */
-
     await githubRequest(
-        "https://api.github.com/repos/" +
-        encodeURIComponent(cfg.username) +
-        "/" +
-        encodeURIComponent(cfg.repo) +
-        "/contents/" +
-        fullPath
-        .split("/")
-        .map(x =>
-            encodeURIComponent(x)
-        )
-        .join("/"),
+        contentsApi(path),
         {
+
             method:"PUT",
 
             headers:{
@@ -811,20 +1100,29 @@ async function uploadFile(
             },
 
             body:
-            JSON.stringify(body)
+            JSON.stringify(
+                body
+            )
+
         }
     );
 
 
     const percent =
-    Math.round(
-        ((index+1)/total)*100
-    );
+        Math.round(
+            (
+                (index + 1) /
+                total
+            ) * 100
+        );
+
 
     showProgress(
         percent,
-        "完成：" + file.name
+        "上传完成：" +
+        file.name
     );
+
 
     setStatus(
         "上传成功：" +
@@ -834,130 +1132,159 @@ async function uploadFile(
 }
 
 
-/* ================================
+/* =====================================
    读取当前目录
-================================ */
+===================================== */
 
 async function loadFiles(){
 
     try{
+
         getConfig();
-    }catch(err){
+
+    }catch(error){
 
         fileList.innerHTML =
         `<div class="empty">
-        ${escapeHtml(err.message)}
+            ${escapeHtml(
+                error.message
+            )}
         </div>`;
 
         return;
+
     }
 
 
     fileList.innerHTML =
     `<div class="loading">
-    正在读取当前目录...
+        正在读取目录...
     </div>`;
 
 
     try{
 
         const data =
-        await githubRequest(
-            apiUrl()
-        );
+            await githubRequest(
+                currentDirectoryApi()
+            );
 
 
-        if(!Array.isArray(data)){
+        if(
+            !Array.isArray(data)
+        ){
 
             throw new Error(
-                "这个路径不是目录"
+                "指定路径不是目录"
             );
+
         }
 
 
+        /*
+           这里只显示文件。
+
+           子目录不会丢失，
+           只是不会把它们当成文件
+           显示出来。
+        */
+
         const files =
-        data.filter(
-            item =>
-            item.type === "file"
-        );
+            data.filter(
+                item =>
+                item.type === "file"
+            );
 
 
-        if(!files.length){
+        if(
+            files.length === 0
+        ){
 
             fileList.innerHTML =
             `<div class="empty">
-            当前目录没有文件
+                当前目录没有文件
             </div>`;
+
 
             setStatus(
                 "目录为空"
             );
 
+
             return;
+
         }
 
 
-        let html="";
+        let html = "";
 
 
-        files.forEach(item=>{
+        for(
+            const item of files
+        ){
 
             html += `
 
 <div class="file-item">
 
-<div class="file-info">
+    <div class="file-info">
 
-<div
-class="file-name"
-title="${escapeHtml(item.name)}">
+        <div
+            class="file-name"
+            title="${escapeHtml(
+                item.name
+            )}">
 
-${escapeHtml(item.name)}
+            ${escapeHtml(
+                item.name
+            )}
 
-</div>
+        </div>
 
-<div class="file-size">
+        <div class="file-size">
 
-${formatBytes(item.size)}
+            ${formatBytes(
+                item.size
+            )}
 
-</div>
+        </div>
 
-</div>
-
-
-<div class="file-ops">
-
-<button
-onclick='downloadFile(
-${JSON.stringify(item)}
-)'>
-
-下载
-
-</button>
+    </div>
 
 
-<button
-class="del"
-onclick='deleteFile(
-${JSON.stringify(item)}
-)'>
+    <div class="file-ops">
 
-删除
+        <button
+            onclick='downloadFile(
+                ${JSON.stringify(item)}
+            )'>
 
-</button>
+            下载
 
-</div>
+        </button>
+
+
+        <button
+            class="del"
+            onclick='deleteFile(
+                ${JSON.stringify(item)}
+            )'>
+
+            删除
+
+        </button>
+
+    </div>
 
 </div>
 
 `;
 
-        });
+        }
 
 
         fileList.innerHTML =
-        html;
+            html;
 
 
         setStatus(
@@ -967,25 +1294,30 @@ ${JSON.stringify(item)}
         );
 
 
-    }catch(err){
+    }catch(error){
 
         fileList.innerHTML =
         `<div class="empty">
-        ${escapeHtml(err.message)}
+            ${escapeHtml(
+                error.message
+            )}
         </div>`;
+
 
         setStatus(
             "读取失败：" +
-            err.message,
+            error.message,
             true
         );
+
     }
+
 }
 
 
-/* ================================
+/* =====================================
    下载
-================================ */
+===================================== */
 
 window.downloadFile =
 async function(item){
@@ -998,31 +1330,44 @@ async function(item){
         );
 
 
+        /*
+           GitHub API 获取文件内容
+        */
+
         const data =
-        await githubRequest(
-            apiUrl(item.name)
-        );
+            await githubRequest(
+                contentsApi(
+                    item.path
+                    ? getRelativePath(
+                        item.path
+                    )
+                    : item.name
+                )
+            );
 
 
-        if(!data.content){
+        if(
+            !data.content
+        ){
 
             throw new Error(
                 "GitHub 没有返回文件内容"
             );
+
         }
 
 
         const binary =
-        atob(
-            data.content
-            .replace(/\s/g,"")
-        );
+            atob(
+                data.content
+                .replace(/\s/g,"")
+            );
 
 
         const bytes =
-        new Uint8Array(
-            binary.length
-        );
+            new Uint8Array(
+                binary.length
+            );
 
 
         for(
@@ -1032,25 +1377,35 @@ async function(item){
         ){
 
             bytes[i] =
-            binary.charCodeAt(i);
+                binary.charCodeAt(i);
 
         }
 
 
         const blob =
-        new Blob([bytes]);
+            new Blob(
+                [bytes]
+            );
 
 
         const url =
-        URL.createObjectURL(blob);
+            URL.createObjectURL(
+                blob
+            );
 
 
         const a =
-        document.createElement("a");
+            document.createElement(
+                "a"
+            );
 
-        a.href=url;
 
-        a.download=item.name;
+        a.href =
+            url;
+
+        a.download =
+            item.name;
+
 
         document.body.appendChild(a);
 
@@ -1058,7 +1413,10 @@ async function(item){
 
         a.remove();
 
-        URL.revokeObjectURL(url);
+
+        URL.revokeObjectURL(
+            url
+        );
 
 
         setStatus(
@@ -1066,31 +1424,79 @@ async function(item){
             item.name
         );
 
-    }catch(err){
+
+    }catch(error){
 
         setStatus(
             "下载失败：" +
-            err.message,
+            error.message,
             true
         );
+
     }
+
 };
 
 
-/* ================================
-   删除
-================================ */
+/* =====================================
+   取得相对于当前目录的路径
+===================================== */
+
+function getRelativePath(
+    fullPath
+){
+
+    const cfg =
+        getConfig();
+
+
+    if(
+        !cfg.folder
+    ){
+
+        return fullPath;
+
+    }
+
+
+    const prefix =
+        cfg.folder + "/";
+
+
+    if(
+        fullPath.startsWith(
+            prefix
+        )
+    ){
+
+        return fullPath.substring(
+            prefix.length
+        );
+
+    }
+
+
+    return fullPath;
+
+}
+
+
+/* =====================================
+   删除文件
+===================================== */
 
 window.deleteFile =
 async function(item){
 
     if(
         !confirm(
-            "确定删除吗？\n\n" +
+            "确定删除这个文件吗？\n\n" +
             item.name
         )
     ){
+
         return;
+
     }
 
 
@@ -1102,9 +1508,20 @@ async function(item){
         );
 
 
+        const relativePath =
+            item.path
+            ? getRelativePath(
+                item.path
+            )
+            : item.name;
+
+
         await githubRequest(
-            apiUrl(item.name),
+            contentsApi(
+                relativePath
+            ),
             {
+
                 method:"DELETE",
 
                 headers:{
@@ -1119,9 +1536,11 @@ async function(item){
                     "删除文件：" +
                     item.name,
 
-                    sha:item.sha
+                    sha:
+                    item.sha
 
                 })
+
             }
         );
 
@@ -1135,20 +1554,22 @@ async function(item){
         await loadFiles();
 
 
-    }catch(err){
+    }catch(error){
 
         setStatus(
             "删除失败：" +
-            err.message,
+            error.message,
             true
         );
+
     }
+
 };
 
 
-/* ================================
-   进度条
-================================ */
+/* =====================================
+   进度
+===================================== */
 
 function showProgress(
     percent,
@@ -1156,73 +1577,92 @@ function showProgress(
 ){
 
     progressWrap.style.display =
-    "block";
+        "block";
 
     progressText.style.display =
-    "block";
+        "block";
+
 
     progressBar.style.width =
-    percent + "%";
+        percent + "%";
+
 
     progressText.textContent =
-    text +
-    "　" +
-    percent +
-    "%";
+        text +
+        "　" +
+        percent +
+        "%";
 
 
-    if(percent>=100){
+    if(
+        percent >= 100
+    ){
 
         setTimeout(
-            ()=>{
+            () => {
+
                 progressWrap.style.display =
-                "none";
+                    "none";
 
                 progressText.style.display =
-                "none";
+                    "none";
+
             },
-            800
+            1000
         );
+
     }
+
 }
 
 
-/* ================================
+/* =====================================
    状态
-================================ */
+===================================== */
 
 function setStatus(
     text,
     error=false
 ){
 
-    statusBox.textContent=text;
+    statusBox.textContent =
+        text;
+
 
     statusBox.className =
-    error
-    ? "status error"
-    : "status ok";
+        error
+        ? "status error"
+        : "status ok";
+
 }
 
 
-/* ================================
+/* =====================================
    文件大小
-================================ */
+===================================== */
 
-function formatBytes(bytes){
+function formatBytes(
+    bytes
+){
 
     if(
         bytes === undefined ||
         bytes === null
     ){
+
         return "未知大小";
+
     }
 
-    if(bytes===0){
+
+    if(bytes === 0){
+
         return "0 B";
+
     }
 
-    const units=[
+
+    const units = [
         "B",
         "KB",
         "MB",
@@ -1230,53 +1670,86 @@ function formatBytes(bytes){
         "TB"
     ];
 
+
     const i =
-    Math.floor(
-        Math.log(bytes) /
-        Math.log(1024)
-    );
+        Math.floor(
+            Math.log(bytes) /
+            Math.log(1024)
+        );
+
 
     return (
         (
             bytes /
-            Math.pow(1024,i)
+            Math.pow(
+                1024,
+                i
+            )
         )
         .toFixed(
-            i===0 ? 0 : 2
+            i === 0
+            ? 0
+            : 2
         )
         +
         " " +
         units[i]
     );
+
 }
 
 
-/* ================================
+/* =====================================
    HTML 转义
-================================ */
+===================================== */
 
-function escapeHtml(str){
+function escapeHtml(
+    str
+){
 
     return String(str)
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
 }
 
 
-/* ================================
+/* =====================================
    初始化
-================================ */
+===================================== */
 
 fileList.innerHTML =
 `
 <div class="empty">
-GitHub 文件管理器<br>
+
+GitHub 文件管理器
+
+<br>
+
 <span style="color:#666">
-填写目录后，可以管理该目录中的文件
+
+目录留空 = 仓库根目录
+
 </span>
+
 </div>
 `;
 
