@@ -1,0 +1,82 @@
+﻿ls /opt/res
+/移动
+
+cat run_log.log
+#运行日志跳动
+
+# 查看运行状态
+sudo systemctl status log-split
+
+# 停止守护
+sudo systemctl stop log-split
+
+# 重启守护（修改脚本后执行）
+sudo systemctl restart log-split
+
+# 取消开机自启
+sudo systemctl disable log-split
+python3 "down.py"
+
+df -h
+#硬盘
+
+
+sudo du -sh /文件夹/*
+查大小
+
+sudo pkill -9 python3
+#关闭所有py
+
+
+cat /var/log/auth.log
+#查登录记录
+
+sudo reboot
+#重启
+
+
+
+nohup python3 文件占.py >/dev/null 2>&1 &
+#后台启动
+
+sudo kill -9 $(sudo lsof -t -i :9000)
+#关闭指定端口
+
+
+sudo kill -9 $(sudo lsof )
+#
+
+sudo du -hx --max-depth=1 / | sort -rh
+真实占用
+
+sudo crontab -e
+#定时任务
+
+
+ps aux | grep "\.sh" | grep -v grep查询sh
+sudo crontab -l
+crontab -l
+查询定时
+systemctl list-unit-files --type=service | grep sh
+查询sys
+
+ps aux | grep -E python3|python | grep -v grep
+#查所有py
+
+journalctl -u allpy.service -f
+#查看动态日志  res sh
+
+
+rm 文件名
+#删除
+
+pkill -f "u.py"
+
+
+#关进程 u.py
+
+
+kill -9 $(pgrep -f "down_1.py")
+
+#强制关闭 u.py
+
