@@ -1,238 +1,440 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title></title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" rel="stylesheet">
-<!-- 改用支持加密zip解压的zip.js -->
-<script src="https://cdn.jsdelivr.net/npm/zip-js@2.7.2/dist/zip.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>正在检测IP信息</title>
 <style>
-body {
-    background-color: #121212;
-    color: #ffffff;
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
 }
-.sidebar-left {
-    background: #1a1a1a;
-    min-height: 100vh;
-    padding: 25px 15px;
+body{
+    background:#111;
+    color:#fff;
+    min-height:100vh;
+    padding:25px;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
-.sidebar-right {
-    background: #1a1a1a;
-    min-height: 100vh;
-    padding: 25px 15px;
+.container{
+    max-width:760px;
+    margin:auto;
 }
-.main-container {
-    background: #222222;
-    min-height: 100vh;
-    padding: 30px;
+.title{
+    text-align:center;
+    font-size:28px;
+    font-weight:bold;
+    margin-bottom:25px;
 }
-.menu-btn {
-    width: 100%;
-    margin-bottom: 10px;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.card{
+    background:#1b1b1b;
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:18px;
 }
-.menu-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+.card h2{
+    font-size:20px;
+    margin-bottom:15px;
 }
-.content-box {
-    white-space: pre-wrap;
-    background: #2b2b2b;
-    padding: 25px;
-    border-radius: 8px;
-    margin-top: 25px;
-    min-height: 600px;
-    font-size: 15px;
-    line-height: 1.7;
-    max-height: 70vh;
-    overflow-y: auto;
+.row{
+    display:flex;
+    justify-content:space-between;
+    gap:15px;
+    padding:10px 0;
+    border-bottom:1px solid #333;
 }
-h4, hr, .tip-text, #folder-tip, .control-bar {
-    display: none;
+.row:last-child{
+    border-bottom:none;
 }
-#csv-content-box {
-    white-space: pre-wrap;
-    max-height: 220px;
-    overflow-y: auto;
-    background: #333;
+.label{
+    color:#999;
+    flex-shrink:0;
+}
+.value{
+    text-align:right;
+    word-break:break-all;
+}
+.api{
+    background:#151515;
+    border-radius:10px;
     padding:15px;
-    border-radius:6px;
+    margin-top:12px;
+    line-height:1.8;
 }
-/* 密码弹窗样式 */
-#passwordModal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
+.api-title{
+    font-size:17px;
+    font-weight:bold;
+    margin-bottom:5px;
 }
-.modal-box {
-    background: #222;
-    padding: 30px;
-    border-radius: 10px;
-    width: 320px;
+.ok{
+    color:#4ade80;
+}
+.fail{
+    color:#f87171;
+}
+.wait{
+    color:#aaa;
+}
+.process-tip{
+    color:#ffcc44;
+    margin:8px 0;
+}
+.countdown{
+    text-align:center;
+    margin-top:25px;
+    display:none;
+}
+.number{
+    font-size:52px;
+    font-weight:bold;
+}
+.text{
+    color:#999;
+}
+.tip-small{
+    font-size:14px;
+    color:#bbbbbb;
+    margin-top:6px;
 }
 </style>
 </head>
 <body>
-
-<!-- 密码解锁弹窗 -->
-<div id="passwordModal">
-    <div class="modal-box">
-        <h4 style="color:#fff;margin-bottom:20px">请输入访问密码</h4>
-        <input type="password" id="zipPassword" class="form-control" placeholder="输入解密密码">
-        <button id="unlockBtn" class="btn btn-primary btn-block" style="margin-top:15px">解锁加载</button>
+<div class="container">
+    <div class="title">正在检测访问者IP信息</div>
+    <!-- IP基础信息（test-ipv6获取） -->
+    <div class="card">
+        <h2>本机公网 IP</h2>
+        <div class="process-tip" id="ipProcessTip">正在等待test-ipv6获取公网IP（最长20秒）</div>
+        <div class="tip-small" id="ipBackupTip"></div>
+        <div class="row">
+            <span class="label">IP地址</span>
+            <span class="value" id="mainIP">查询中...</span>
+        </div>
+        <div class="row">
+            <span class="label">IP协议</span>
+            <span class="value" id="ipVersion">检测中...</span>
+        </div>
+    </div>
+    <!-- 4个独立免费IP库查询结果 -->
+    <div class="card">
+        <h2>4个独立IP库查询结果</h2>
+        <div class="process-tip" id="apiProcessTip">等待公网IP获取完成后启动查询</div>
+        <div id="apiBox">
+            <div class="wait">未开始查询</div>
+        </div>
+    </div>
+    <!-- 综合判定定位结果 -->
+    <div class="card">
+        <h2>综合判定定位结果</h2>
+        <div class="row">
+            <span class="label">国家</span>
+            <span class="value" id="country">检测中...</span>
+        </div>
+        <div class="row">
+            <span class="label">省份</span>
+            <span class="value" id="region">检测中...</span>
+        </div>
+        <div class="row">
+            <span class="label">城市</span>
+            <span class="value" id="city">检测中...</span>
+        </div>
+        <div class="row">
+            <span class="label">区县</span>
+            <span class="value" id="area">检测中...</span>
+        </div>
+        <div class="row">
+            <span class="label">运营商</span>
+            <span class="value" id="isp">检测中...</span>
+        </div>
+    </div>
+    <!-- 倒计时跳转（全部查询完成才显示） -->
+    <div class="countdown" id="countWrap">
+        <div class="number" id="num">5</div>
+        <div class="text">秒后自动进入主页</div>
     </div>
 </div>
 
-<div class="container-fluid" style="display:none" id="mainPage">
-    <div class="row">
-        <!-- 左侧11按钮 1~11 -->
-        <div class="col-md-2 sidebar-left">
-            <button class="btn btn-success menu-btn" data-num="1" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="2" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="3" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="4" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="5" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="6" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="7" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="8" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="9" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="10" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="11" disabled></button>
-        </div>
-
-        <!-- 中间内容 -->
-        <div class="col-md-8 main-container">
-            <div id="csv-content-box"></div>
-            <div id="txt-all-content" class="content-box"></div>
-        </div>
-
-        <!-- 右侧12按钮 12~23 -->
-        <div class="col-md-2 sidebar-right">
-            <button class="btn btn-default menu-btn" data-num="12" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="13" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="14" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="15" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="16" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="17" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="18" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="19" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="20" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="21" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="22" disabled></button>
-            <button class="btn btn-default menu-btn" data-num="23" disabled></button>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"></script>
 <script>
-// =====================【1、切换系列只改这里字母】=====================
-const PREFIX = "a";
-// 自动加载： a_data.zip  / b_data.zip / t_data.zip / y_data.zip
-// ====================================================================
+// 方案1：test-ipv6 JSONP 获取IP（本地content://协议容易拦截）
+function getIPByJsonp() {
+    return new Promise((resolve) => {
+        const cbName = "testIpCallback_" + Date.now();
+        let script = document.createElement("script");
+        // 同时加载ipv4+ipv6双节点
+        window[cbName] = function(res) {
+            document.body.removeChild(script);
+            delete window[cbName];
+            if(res.ipinfo?.ip) resolve(res.ipinfo.ip);
+        }
+        // 优先ipv4，备用ipv6节点
+        script.src = `https://ipv4.lookup.test-ipv6.com/ip/?callback=${cbName}&asn=1`;
+        document.body.appendChild(script);
+        // 20秒超时
+        setTimeout(()=>{
+            try{document.body.removeChild(script);}catch(e){}
+            delete window[cbName];
+            resolve(null);
+        },20000);
+    })
+}
 
-// =====================【2、解密密码在这里设置】=====================
-const PAGE_PASSWORD = "123456"; // 改成你自己的访问密码
-// =================================================================
-
-let zipPassword = "";
-const csvMap = {};
-const txtMap = {};
-let allTxtMerge = "";
-const ZIP_NAME = `${PREFIX}_data.zip`;
-
-// 密码解锁
-$("#unlockBtn").click(function(){
-    const inputPwd = $("#zipPassword").val();
-    if(inputPwd !== PAGE_PASSWORD){
-        alert("密码错误");
-        return;
+// 方案2：备用fetch接口，无JSONP，不受本地文件跨域拦截（兜底）
+async function getIPByFetchBackup(){
+    const list = [
+        "https://api.ipify.org?format=json",
+        "https://icanhazip.com",
+        "https://api.ip.sb/ip"
+    ];
+    for(let url of list){
+        try{
+            const res = await fetch(url,{cache:"no-cache",signal:AbortSignal.timeout(8000)});
+            let text = await res.text();
+            text = text.trim();
+            if(url.includes("ipify")){
+                const j = JSON.parse(text);
+                return j.ip;
+            }else{
+                if(text.length < 50) return text;
+            }
+        }catch(e){continue;}
     }
-    zipPassword = inputPwd;
-    $("#passwordModal").hide();
-    $("#mainPage").show();
-    loadEncryptedZip();
-});
+    return null;
+}
 
-// 加载远程加密zip并解密解压
-async function loadEncryptedZip(){
+// 双方案获取IP：先JSONP，失败自动切fetch备用
+async function getPublicIPAll(){
+    const tipDom = document.getElementById("ipBackupTip");
+    let ip = await getIPByJsonp();
+    if(ip){
+        tipDom.innerText = "✅ 通过test-ipv6 JSONP成功获取IP";
+        return ip;
+    }
+    tipDom.innerText = "⚠️ test-ipv6 JSONP被本地浏览器拦截，切换备用接口获取IP";
+    ip = await getIPByFetchBackup();
+    return ip;
+}
+
+// 2. 4套独立定位接口，单个请求超时20秒
+const apiList = [
+    {
+        name: "ip9国内IP库",
+        url: ip => `https://ip9.com.cn/get?ip=${ip}`,
+        parser: res => {
+            if(res.ret !== 200) return null;
+            const d = res.data;
+            return {
+                source: "ip9国内IP库",
+                ip: d.ip,
+                country: d.country,
+                region: d.prov,
+                city: d.city,
+                area: d.area,
+                isp: d.isp
+            }
+        }
+    },
+    {
+        name: "api.ip.sb全球库",
+        url: ip => `https://api.ip.sb/geoip/${ip}`,
+        parser: res => {
+            return {
+                source: "api.ip.sb全球库",
+                ip: res.ip,
+                country: res.country,
+                region: res.region,
+                city: res.city,
+                area: "",
+                isp: res.organization
+            }
+        }
+    },
+    {
+        name: "vore免费IP库",
+        url: ip => `https://api.vore.top/api/IPdata?ip=${ip}`,
+        parser: res => {
+            if(res.code !== 200) return null;
+            return {
+                source: "vore免费IP库",
+                ip: res.ip,
+                country: res.country,
+                region: res.province,
+                city: res.city,
+                area: res.area,
+                isp: res.isp
+            }
+        }
+    },
+    {
+        name: "uaip查询库",
+        url: ip => `https://ip.useragentinfo.com/json?ip=${ip}`,
+        parser: res => {
+            if(res.code !== 200) return null;
+            return {
+                source: "uaip查询库",
+                ip: res.ip,
+                country: res.country,
+                region: res.province,
+                city: res.city,
+                area: res.area,
+                isp: res.isp
+            }
+        }
+    }
+];
+
+// 文本标准化比对
+function normalize(value) {
+    return String(value || "").trim().replace(/\s+/g, "");
+}
+// 多源共识判定
+function getConsensusResult(results, fieldKey) {
+    const map = {};
+    results.forEach(item => {
+        const val = normalize(item[fieldKey]);
+        if (!val) return;
+        if (!map[val]) map[val] = [];
+        map[val].push(item);
+    });
+    let target = null;
+    for (const key in map) {
+        if (map[key].length >= 2) {
+            target = map[key][0][fieldKey];
+            break;
+        }
+    }
+    return target;
+}
+
+// 渲染4个接口面板
+function renderApiPanel(results) {
+    const box = document.getElementById("apiBox");
+    box.innerHTML = "";
+    apiList.forEach(api => {
+        const matchData = results.find(r => r.source === api.name);
+        const div = document.createElement("div");
+        div.className = "api";
+        if (!matchData) {
+            div.innerHTML = `
+                <div class="api-title fail">${api.name}</div>
+                <div>接口请求失败/超时无数据</div>
+            `;
+        } else {
+            div.innerHTML = `
+                <div class="api-title ok">${matchData.source}</div>
+                <div>IP：${matchData.ip}</div>
+                <div>省份：${matchData.region || "未知"}</div>
+                <div>城市：${matchData.city || "未知"}</div>
+                <div>区县：${matchData.area || "无"}</div>
+                <div>运营商：${matchData.isp || "未知"}</div>
+            `;
+        }
+        box.appendChild(div);
+    })
+}
+
+// 串行逐个查询4个接口，单个超时20秒，实时更新进度提示
+async function fetchSerialAllApi(ip) {
+    const successList = [];
+    const apiTip = document.getElementById("apiProcessTip");
+    for(let i = 0; i < apiList.length; i++) {
+        const api = apiList[i];
+        apiTip.innerText = `正在查询第${i+1}/4个库：${api.name}（单接口最长20秒）`;
+        try {
+            const res = await fetch(api.url(ip), { 
+                cache: "no-cache", 
+                signal: AbortSignal.timeout(20000) 
+            });
+            const json = await res.json();
+            const parseData = api.parser(json);
+            if (parseData && parseData.ip) successList.push(parseData);
+        } catch (e) {
+            console.log(`${api.name} 请求超时/失败`, e);
+        }
+    }
+    apiTip.innerText = "4个IP库全部查询完成";
+    return successList;
+}
+
+// 统一填充空定位结果
+function fillEmptyResult() {
+    document.getElementById("country").textContent = "无法确定";
+    document.getElementById("region").textContent = "无法确定";
+    document.getElementById("city").textContent = "无法确定";
+    document.getElementById("area").textContent = "无法确定";
+    document.getElementById("isp").textContent = "无法确定";
+}
+
+// 页面主逻辑
+async function main() {
+    const apiBox = document.getElementById("apiBox");
+    const ipTip = document.getElementById("ipProcessTip");
+    const apiTip = document.getElementById("apiProcessTip");
+    const countWrap = document.getElementById("countWrap");
     try{
-        const response = await fetch(ZIP_NAME, { cache: "no-cache" });
-        const blob = await response.blob();
-        // 读取带密码的加密压缩包
-        const reader = new zip.ZipReader(new zip.BlobReader(blob), {
-            password: zipPassword
-        });
-        const entries = await reader.getEntries();
+        // 第一步：双方案获取公网IP，最长等待20秒
+        const publicIP = await getPublicIPAll();
+        if(!publicIP) throw new Error("所有IP获取接口全部超时失败");
+        ipTip.innerText = "公网IP获取成功";
+        document.getElementById("mainIP").textContent = publicIP;
+        const ipVer = publicIP.includes(":") ? "IPv6" : "IPv4";
+        document.getElementById("ipVersion").textContent = ipVer;
 
-        // 清空旧数据
-        Object.keys(csvMap).forEach(k=>delete csvMap[k]);
-        Object.keys(txtMap).forEach(k=>delete txtMap[k]);
-        allTxtMerge = "";
-        $(".menu-btn").text("").prop("disabled",true);
-        $("#csv-content-box").text("");
-        $("#txt-all-content").text("");
+        // 第二步：串行查询4个定位接口，逐个执行，全部完成再下一步
+        const resultList = await fetchSerialAllApi(publicIP);
+        if (resultList.length === 0) {
+            apiBox.innerHTML = `<div class="fail">所有定位接口全部请求失败</div>`;
+            fillEmptyResult();
+        }else{
+            renderApiPanel(resultList);
+            // 多源比对字段
+            const countryRes = getConsensusResult(resultList, "country");
+            const regionRes = getConsensusResult(resultList, "region");
+            const cityRes = getConsensusResult(resultList, "city");
+            const areaRes = getConsensusResult(resultList, "area");
+            const ispRes = getConsensusResult(resultList, "isp");
 
-        const csvReg = new RegExp(`^${PREFIX}(\\d+)\\.csv$`, 'i');
-        const txtReg = new RegExp(`^${PREFIX}(\\d+)\\.txt$`, 'i');
+            document.getElementById("country").textContent = countryRes || "定位失效（无2条一致数据）";
+            document.getElementById("region").textContent = regionRes || "定位失效（无2条一致数据）";
+            document.getElementById("city").textContent = cityRes || "定位失效（无2条一致数据）";
+            document.getElementById("area").textContent = areaRes || "无匹配区县";
+            document.getElementById("isp").textContent = ispRes || "定位失效（无2条一致数据）";
 
-        for(const entry of entries){
-            if(entry.directory) continue;
-            const name = entry.filename;
-
-            // 匹配当前系列CSV
-            const csvMatch = name.match(csvReg);
-            if(csvMatch){
-                const num = parseInt(csvMatch[1]);
-                const text = await entry.getData(new zip.TextWriter());
-                csvMap[num] = text;
-                const firstLine = text.trim().split(/\r?\n/)[0] || "";
-                $(`.menu-btn[data-num="${num}"]`).text(firstLine).prop("disabled",false);
-            }
-
-            // 匹配当前系列TXT
-            const txtMatch = name.match(txtReg);
-            if(txtMatch){
-                const num = parseInt(txtMatch[1]);
-                const text = await entry.getData(new zip.TextWriter());
-                txtMap[num] = text;
-            }
+            // 存储定位数据
+            sessionStorage.setItem("geoResult", JSON.stringify({
+                ip: publicIP,
+                ipVersion: ipVer,
+                country: countryRes || "",
+                region: regionRes || "",
+                city: cityRes || "",
+                area: areaRes || "",
+                isp: ispRes || ""
+            }));
         }
-
-        await reader.close();
-
-        // 按顺序拼接所有txt
-        allTxtMerge = "";
-        for(let i=1;i<=50;i++){
-            if(txtMap[i]) allTxtMerge += txtMap[i] + "\n\n";
-        }
-        $("#txt-all-content").text(allTxtMerge);
-
-    }catch(err){
-        console.error("解压失败：密码错误或压缩包非AES加密",err);
-        alert("压缩包解密失败，请检查加密方式或密码");
+        // 全部查询完成，显示倒计时跳转
+        countWrap.style.display = "block";
+        let time = 5;
+        const numDom = document.getElementById("num");
+        const timer = setInterval(() => {
+            time--;
+            numDom.textContent = time;
+            if (time <= 0) {
+                clearInterval(timer);
+                location.href = "home/";
+            }
+        }, 1000);
+    }catch(e){
+        console.error("全局流程异常：",e);
+        ipTip.innerText = "全部IP获取渠道20秒超时失败";
+        apiTip.innerText = "未执行定位查询";
+        apiBox.innerHTML = `<div class="fail">IP获取失败，终止后续查询</div>`;
+        document.getElementById("mainIP").textContent = "获取失败";
+        document.getElementById("ipVersion").textContent = "未知";
+        fillEmptyResult();
     }
 }
 
-// 按钮点击查看CSV
-$(".menu-btn").click(function(){
-    const num = $(this).data("num");
-    if(!csvMap[num]) return;
-    $("#csv-content-box").text(csvMap[num]);
-    $("#txt-all-content").text(allTxtMerge);
-});
+main();
 </script>
 </body>
 </html>
