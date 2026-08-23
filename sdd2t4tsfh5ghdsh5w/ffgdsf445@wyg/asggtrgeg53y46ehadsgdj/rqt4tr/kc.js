@@ -1,14 +1,5 @@
 button{width:100%;padding:11px;background:#2196F3;color:white;border:none;border-radius:6px;font-size:1    const key = document.getElementById("key").value;
-    const res = await fetch("/api/login",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({key:key})
-    });
-    const d = await res.json();
-    if(d.ok){
-        window.location.href="/";
-    }else{
-        document.getElementById("err").innerText=d.msg;
+    conocument.getElementById("err").innerText=d.msg;
     }
 }
 </script>
