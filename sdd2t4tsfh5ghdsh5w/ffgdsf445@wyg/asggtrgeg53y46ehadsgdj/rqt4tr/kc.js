@@ -1,22 +1,4 @@
-button{width:100%;padding:11px;background:#2196F3;color:white;border:none;border-radius:6px;font-size:1    const key = document.getElementById("key").value;
-    conocument.getElementById("err").innerText=d.msg;
-    }
-}
-</script>
-</body>
-</html>
-"""
-
-HTML_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>分片文件上传下载</title>
-<style>
-*{box-sizing:border-box;font-family:system-ui}
-body{max-width:800px;margin:20px auto;padding:0 15px}
+y{max-width:800px;margin:20px auto;padding:0 15px}
 .box{border:1px solid #ccc;padding:20px;border-radius:8px;margin-bottom:20px}
 #fileInput{margin:10px 0;padding:8px}
 #progress{width:100%;height:20px;background:#eee;border-radius:10px;margin:10px 0;display:none}
