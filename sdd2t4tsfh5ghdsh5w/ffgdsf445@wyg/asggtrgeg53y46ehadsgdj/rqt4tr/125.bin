@@ -1,0 +1,1289 @@
+import os
+import re
+import json
+import uuid
+import shutil
+import zipfile
+import tempfile
+from pathlib import Path
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+
+from flask import Flask, request, jsonify, send_from_directory
+
+
+# ============================================================
+# 基本配置
+# ============================================================
+
+app = Flask(__name__)
+
+# server.py 所在目录
+BASE_DIR = Path(__file__).resolve().parent
+
+# 最大单文件：10 GB
+MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024
+
+# 每个分片大小：16 MB
+# 可以改成 32 / 64 / 128 MB
+CHUNK_SIZE = 16 * 1024 * 1024
+
+# GitHub
+GITHUB_USER = "oceeax"
+GITHUB_REPO = "dk"
+
+GITHUB_FILE_PATH = (
+    "sdd2t4tsfh5ghdsh5w/"
+    "ffgdsf445@wyg/"
+    "asggtrgeg53y46ehadsgdj/"
+    "rqt4tr/"
+    "ad.zip"
+)
+
+GITHUB_BRANCH = "main"
+
+# 上传临时文件
+TEMP_DIR = BASE_DIR / ".upload_tmp"
+
+TEMP_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+
+# ============================================================
+# 测试密钥
+# ============================================================
+
+def get_github_file_download_url():
+    """
+    从 GitHub 公共 API 获取 ad.zip 的下载地址。
+    不需要 GitHub Token，因为仓库是公开的。
+    """
+
+    api_url = (
+        "https://api.github.com/repos/"
+        + GITHUB_USER
+        + "/"
+        + GITHUB_REPO
+        + "/contents/"
+        + "/".join(
+            part.replace(" ", "%20")
+            for part in GITHUB_FILE_PATH.split("/")
+        )
+        + "?ref="
+        + GITHUB_BRANCH
+    )
+
+    req = Request(
+        api_url,
+        headers={
+            "User-Agent": "GitHub-Test-Upload-Server"
+        }
+    )
+
+    with urlopen(req, timeout=30) as response:
+        data = json.loads(
+            response.read().decode("utf-8")
+        )
+
+    download_url = data.get("download_url")
+
+    if not download_url:
+        raise RuntimeError(
+            "GitHub 没有返回 ad.zip 的 download_url"
+        )
+
+    return download_url
+
+
+def extract_test_key_from_zip():
+    """
+    测试版密钥提取规则：
+
+    1. 下载 GitHub 上的 ad.zip
+    2. 解压到临时目录
+    3. 找第一个 UTF-8 文本文件
+    4. 读取第三行
+    5. 从第 5 个字符开始取 9 个字符
+
+    注意：
+    这是测试鉴权，不是真正安全的密钥。
+    """
+
+    download_url = get_github_file_download_url()
+
+    temp_zip = TEMP_DIR / "_secret_ad.zip"
+
+    req = Request(
+        download_url,
+        headers={
+            "User-Agent": "GitHub-Test-Upload-Server"
+        }
+    )
+
+    with urlopen(req, timeout=120) as response:
+        with open(temp_zip, "wb") as f:
+            while True:
+                chunk = response.read(1024 * 1024)
+
+                if not chunk:
+                    break
+
+                f.write(chunk)
+
+    extract_dir = TEMP_DIR / "_secret_extract"
+
+    if extract_dir.exists():
+        shutil.rmtree(extract_dir)
+
+    extract_dir.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    try:
+
+        with zipfile.ZipFile(temp_zip, "r") as z:
+
+            # 防止 ZIP 路径穿越
+            for info in z.infolist():
+
+                target =
+                (
+                    extract_dir /
+                    info.filename
+                ).resolve()
+
+                if not str(target).startswith(
+                    str(extract_dir.resolve())
+                ):
+                    raise RuntimeError(
+                        "ad.zip 包含非法路径"
+                    )
+
+            z.extractall(extract_dir)
+
+    except zipfile.BadZipFile:
+
+        raise RuntimeError(
+            "ad.zip 不是有效 ZIP 文件"
+        )
+
+    finally:
+
+        try:
+            temp_zip.unlink()
+        except Exception:
+            pass
+
+
+    # 找文本文件
+    text_files = []
+
+    for path in extract_dir.rglob("*"):
+
+        if not path.is_file():
+            continue
+
+        try:
+
+            data = path.read_text(
+                encoding="utf-8"
+            )
+
+            text_files.append(
+                (path, data)
+            )
+
+        except UnicodeDecodeError:
+            continue
+
+        except Exception:
+            continue
+
+
+    if not text_files:
+
+        raise RuntimeError(
+            "ad.zip 中没有找到 UTF-8 文本文件"
+        )
+
+
+    # 使用第一个 UTF-8 文本文件
+    text = text_files[0][1]
+
+    lines = text.splitlines()
+
+
+    if len(lines) < 3:
+
+        raise RuntimeError(
+            "文本文件不足三行"
+        )
+
+
+    third_line = lines[2]
+
+
+    # Python 字符串按 Unicode 字符计算
+    if len(third_line) < 13:
+
+        raise RuntimeError(
+            "第三行不足 13 个字符，"
+            "无法从第 5 个字符开始取 9 个字符"
+        )
+
+
+    # 第 5 个字符 = Python 下标 4
+    key = third_line[4:13]
+
+
+    if len(key) != 9:
+
+        raise RuntimeError(
+            "提取出来的测试密钥不是 9 个字符"
+        )
+
+
+    return key
+
+
+# ============================================================
+# 启动时读取测试密钥
+# ============================================================
+
+try:
+
+    UPLOAD_KEY = extract_test_key_from_zip()
+
+    print()
+    print("=" * 60)
+    print("测试上传服务器")
+    print("=" * 60)
+    print("GitHub：")
+    print(
+        f"{GITHUB_USER}/{GITHUB_REPO}"
+    )
+    print("测试密钥已读取")
+    print("密钥长度：", len(UPLOAD_KEY))
+    print("密钥内容：", UPLOAD_KEY)
+    print("=" * 60)
+    print()
+
+except Exception as e:
+
+    UPLOAD_KEY = None
+
+    print()
+    print("=" * 60)
+    print("无法读取测试密钥")
+    print("=" * 60)
+    print(str(e))
+    print("=" * 60)
+    print()
+
+
+# ============================================================
+# 安全检查
+# ============================================================
+
+def check_key():
+
+    if UPLOAD_KEY is None:
+
+        return False
+
+    client_key = (
+        request.headers.get("X-Upload-Key")
+        or request.args.get("key")
+        or request.form.get("key")
+    )
+
+    if not client_key:
+        return False
+
+    return client_key == UPLOAD_KEY
+
+
+def require_key():
+
+    if not check_key():
+
+        return jsonify({
+            "ok": False,
+            "error": "无效的上传密钥"
+        }), 401
+
+    return None
+
+
+# ============================================================
+# 路径处理
+# ============================================================
+
+def safe_path(relative_path):
+    """
+    将网页输入的目录转换成服务器安全路径。
+    禁止 ../ 等路径穿越。
+    """
+
+    if relative_path is None:
+        relative_path = ""
+
+    relative_path = str(
+        relative_path
+    ).strip()
+
+    relative_path = relative_path.replace(
+        "\\",
+        "/"
+    )
+
+    # 删除开头 /
+    relative_path = relative_path.lstrip("/")
+
+    # 空目录
+    if not relative_path:
+        return BASE_DIR.resolve()
+
+    parts = []
+
+    for part in relative_path.split("/"):
+
+        if not part:
+            continue
+
+        if part in (".", ".."):
+            raise ValueError(
+                "非法目录"
+            )
+
+        # Windows 下禁止盘符
+        if ":" in part:
+            raise ValueError(
+                "非法路径"
+            )
+
+        parts.append(part)
+
+    result = (
+        BASE_DIR /
+        Path(*parts)
+    ).resolve()
+
+    if not str(result).startswith(
+        str(BASE_DIR.resolve())
+    ):
+        raise ValueError(
+            "非法路径"
+        )
+
+    return result
+
+
+def safe_filename(filename):
+
+    filename = str(
+        filename
+    ).strip()
+
+    if not filename:
+        raise ValueError(
+            "文件名为空"
+        )
+
+    filename = filename.replace(
+        "\\",
+        "/"
+    )
+
+    filename = Path(
+        filename
+    ).name
+
+    if filename in (
+        "",
+        ".",
+        ".."
+    ):
+        raise ValueError(
+            "非法文件名"
+        )
+
+    return filename
+
+
+# ============================================================
+# 首页
+# ============================================================
+
+@app.route("/")
+def index():
+
+    return send_from_directory(
+        BASE_DIR,
+        "index.html"
+    )
+
+
+# ============================================================
+# 测试服务器
+# ============================================================
+
+@app.route("/api/status")
+def api_status():
+
+    auth = require_key()
+
+    if auth:
+        return auth
+
+    return jsonify({
+        "ok": True,
+        "max_file_size": MAX_FILE_SIZE,
+        "max_file_size_gb": 10,
+        "chunk_size": CHUNK_SIZE
+    })
+
+
+# ============================================================
+# 查询上传状态
+# ============================================================
+
+@app.route(
+    "/api/upload/status",
+    methods=["GET"]
+)
+def upload_status():
+
+    auth = require_key()
+
+    if auth:
+        return auth
+
+
+    upload_id = (
+        request.args.get(
+            "upload_id"
+        )
+    )
+
+    if not upload_id:
+
+        return jsonify({
+            "ok": False,
+            "error": "缺少 upload_id"
+        }), 400
+
+
+    upload_dir = (
+        TEMP_DIR /
+        upload_id
+    )
+
+
+    meta_file =
+        upload_dir / "meta.json"
+
+
+    if not meta_file.exists():
+
+        return jsonify({
+            "ok": True,
+            "exists": False,
+            "uploaded": 0,
+            "chunks": []
+        })
+
+
+    try:
+
+        meta = json.loads(
+            meta_file.read_text(
+                encoding="utf-8"
+            )
+        )
+
+    except Exception:
+
+        return jsonify({
+            "ok": False,
+            "error": "上传任务损坏"
+        }), 500
+
+
+    chunks = []
+
+    for path in upload_dir.glob(
+        "chunk_*"
+    ):
+
+        match = re.match(
+            r"chunk_(\d+)$",
+            path.name
+        )
+
+        if match:
+
+            chunks.append(
+                int(match.group(1))
+            )
+
+
+    chunks.sort()
+
+
+    return jsonify({
+
+        "ok": True,
+
+        "exists": True,
+
+        "upload_id": upload_id,
+
+        "filename":
+            meta["filename"],
+
+        "size":
+            meta["size"],
+
+        "directory":
+            meta["directory"],
+
+        "chunk_size":
+            meta["chunk_size"],
+
+        "total_chunks":
+            meta["total_chunks"],
+
+        "chunks":
+            chunks
+
+    })
+
+
+# ============================================================
+# 创建上传任务
+# ============================================================
+
+@app.route(
+    "/api/upload/create",
+    methods=["POST"]
+)
+def upload_create():
+
+    auth = require_key()
+
+    if auth:
+        return auth
+
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+
+    filename =
+        data.get("filename")
+
+
+    directory =
+        data.get("directory", "")
+
+
+    size =
+        data.get("size")
+
+
+    if not filename:
+
+        return jsonify({
+            "ok": False,
+            "error": "缺少文件名"
+        }), 400
+
+
+    if size is None:
+
+        return jsonify({
+            "ok": False,
+            "error": "缺少文件大小"
+        }), 400
+
+
+    try:
+
+        size = int(size)
+
+    except Exception:
+
+        return jsonify({
+            "ok": False,
+            "error": "文件大小错误"
+        }), 400
+
+
+    if size < 0:
+
+        return jsonify({
+            "ok": False,
+            "error": "文件大小错误"
+        }), 400
+
+
+    if size > MAX_FILE_SIZE:
+
+        return jsonify({
+            "ok": False,
+            "error": "文件超过 10GB 限制"
+        }), 413
+
+
+    try:
+
+        filename =
+            safe_filename(
+                filename
+            )
+
+        target_dir =
+            safe_path(
+                directory
+            )
+
+    except ValueError as e:
+
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 400
+
+
+    # 客户端可以提供 upload_id
+    upload_id =
+        data.get(
+            "upload_id"
+        )
+
+
+    if not upload_id:
+
+        upload_id =
+            uuid.uuid4().hex
+
+
+    # 只允许安全的 UUID 字符
+    if not re.fullmatch(
+        r"[a-zA-Z0-9_-]{8,100}",
+        upload_id
+    ):
+
+        return jsonify({
+            "ok": False,
+            "error": "非法 upload_id"
+        }), 400
+
+
+    upload_dir =
+        TEMP_DIR / upload_id
+
+
+    upload_dir.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+
+    total_chunks =
+        (
+            size +
+            CHUNK_SIZE -
+            1
+        ) // CHUNK_SIZE
+
+
+    meta = {
+
+        "upload_id":
+            upload_id,
+
+        "filename":
+            filename,
+
+        "directory":
+            str(
+                target_dir.relative_to(
+                    BASE_DIR
+                )
+            ).replace(
+                "\\",
+                "/"
+            ),
+
+        "size":
+            size,
+
+        "chunk_size":
+            CHUNK_SIZE,
+
+        "total_chunks":
+            total_chunks
+
+    }
+
+
+    (
+        upload_dir /
+        "meta.json"
+    ).write_text(
+
+        json.dumps(
+            meta,
+            ensure_ascii=False,
+            indent=2
+        ),
+
+        encoding="utf-8"
+    )
+
+
+    return jsonify({
+
+        "ok": True,
+
+        "upload_id":
+            upload_id,
+
+        "chunk_size":
+            CHUNK_SIZE,
+
+        "total_chunks":
+            total_chunks
+
+    })
+
+
+# ============================================================
+# 上传一个分片
+# ============================================================
+
+@app.route(
+    "/api/upload/chunk",
+    methods=["POST"]
+)
+def upload_chunk():
+
+    auth = require_key()
+
+    if auth:
+        return auth
+
+
+    upload_id =
+        request.args.get(
+            "upload_id"
+        )
+
+
+    chunk_index =
+        request.args.get(
+            "chunk"
+        )
+
+
+    if not upload_id:
+
+        return jsonify({
+            "ok": False,
+            "error": "缺少 upload_id"
+        }), 400
+
+
+    if chunk_index is None:
+
+        return jsonify({
+            "ok": False,
+            "error": "缺少 chunk"
+        }), 400
+
+
+    try:
+
+        chunk_index =
+            int(chunk_index)
+
+    except Exception:
+
+        return jsonify({
+            "ok": False,
+            "error": "chunk 错误"
+        }), 400
+
+
+    upload_dir =
+        TEMP_DIR / upload_id
+
+
+    meta_file =
+        upload_dir / "meta.json"
+
+
+    if not meta_file.exists():
+
+        return jsonify({
+            "ok": False,
+            "error": "上传任务不存在"
+        }), 404
+
+
+    meta = json.loads(
+        meta_file.read_text(
+            encoding="utf-8"
+        )
+    )
+
+
+    if (
+        chunk_index < 0
+        or
+        chunk_index >=
+        meta["total_chunks"]
+    ):
+
+        return jsonify({
+            "ok": False,
+            "error": "分片编号错误"
+        }), 400
+
+
+    chunk_file =
+        upload_dir /
+        f"chunk_{chunk_index}"
+
+
+    # 如果这个分片已经存在
+    # 直接覆盖
+    with open(
+        chunk_file,
+        "wb"
+    ) as f:
+
+        while True:
+
+            data =
+                request.stream.read(
+                    1024 * 1024
+                )
+
+            if not data:
+                break
+
+            f.write(data)
+
+
+    return jsonify({
+
+        "ok": True,
+
+        "chunk":
+            chunk_index,
+
+        "size":
+            chunk_file.stat().st_size
+
+    })
+
+
+# ============================================================
+# 合并文件
+# ============================================================
+
+@app.route(
+    "/api/upload/complete",
+    methods=["POST"]
+)
+def upload_complete():
+
+    auth = require_key()
+
+    if auth:
+        return auth
+
+
+    data =
+        request.get_json(
+            silent=True
+        ) or {}
+
+
+    upload_id =
+        data.get(
+            "upload_id"
+        )
+
+
+    if not upload_id:
+
+        return jsonify({
+            "ok": False,
+            "error": "缺少 upload_id"
+        }), 400
+
+
+    upload_dir =
+        TEMP_DIR / upload_id
+
+
+    meta_file =
+        upload_dir / "meta.json"
+
+
+    if not meta_file.exists():
+
+        return jsonify({
+            "ok": False,
+            "error": "上传任务不存在"
+        }), 404
+
+
+    meta = json.loads(
+        meta_file.read_text(
+            encoding="utf-8"
+        )
+    )
+
+
+    total_chunks =
+        meta["total_chunks"]
+
+
+    # 检查所有分片
+    for i in range(
+        total_chunks
+    ):
+
+        chunk_file =
+            upload_dir /
+            f"chunk_{i}"
+
+
+        if not chunk_file.exists():
+
+            return jsonify({
+
+                "ok": False,
+
+                "error":
+                    f"缺少第 {i + 1} 个分片",
+
+                "chunk":
+                    i
+
+            }), 400
+
+
+    try:
+
+        target_dir =
+            safe_path(
+                meta["directory"]
+            )
+
+
+        target_dir.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+
+        final_file =
+            target_dir /
+            meta["filename"]
+
+
+        temp_final =
+            target_dir /
+            (
+                "." +
+                meta["filename"] +
+                "." +
+                upload_id +
+                ".uploading"
+            )
+
+
+        # 合并
+        with open(
+            temp_final,
+            "wb"
+        ) as output:
+
+            for i in range(
+                total_chunks
+            ):
+
+                chunk_file =
+                    upload_dir /
+                    f"chunk_{i}"
+
+
+                with open(
+                    chunk_file,
+                    "rb"
+                ) as source:
+
+                    shutil.copyfileobj(
+                        source,
+                        output,
+                        length=
+                        1024 * 1024
+                    )
+
+
+        # 检查最终大小
+        final_size =
+            temp_final.stat().st_size
+
+
+        if final_size != meta["size"]:
+
+            try:
+                temp_final.unlink()
+            except Exception:
+                pass
+
+            return jsonify({
+
+                "ok": False,
+
+                "error":
+                    "合并后文件大小不正确",
+
+                "expected":
+                    meta["size"],
+
+                "actual":
+                    final_size
+
+            }), 500
+
+
+        # 原子替换
+        os.replace(
+            temp_final,
+            final_file
+        )
+
+
+        # 删除临时分片
+        shutil.rmtree(
+            upload_dir,
+            ignore_errors=True
+        )
+
+
+        return jsonify({
+
+            "ok": True,
+
+            "filename":
+                meta["filename"],
+
+            "directory":
+                meta["directory"],
+
+            "size":
+                final_size,
+
+            "path":
+                str(
+                    final_file
+                    .relative_to(
+                        BASE_DIR
+                    )
+                ).replace(
+                    "\\",
+                    "/"
+                )
+
+        })
+
+
+    except Exception as e:
+
+        return jsonify({
+
+            "ok": False,
+
+            "error":
+                str(e)
+
+        }), 500
+
+
+# ============================================================
+# 服务器已有文件列表
+#
+# 注意：
+# 这里只给文件名和大小。
+# 不提供下载接口。
+# ============================================================
+
+@app.route(
+    "/api/files",
+    methods=["GET"]
+)
+def list_files():
+
+    auth = require_key()
+
+    if auth:
+        return auth
+
+
+    directory =
+        request.args.get(
+            "directory",
+            ""
+        )
+
+
+    try:
+
+        target_dir =
+            safe_path(
+                directory
+            )
+
+    except ValueError as e:
+
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 400
+
+
+    if not target_dir.exists():
+
+        return jsonify({
+
+            "ok": True,
+
+            "files": []
+
+        })
+
+
+    if not target_dir.is_dir():
+
+        return jsonify({
+
+            "ok": False,
+
+            "error":
+                "指定路径不是目录"
+
+        }), 400
+
+
+    result = []
+
+
+    for path in target_dir.iterdir():
+
+        if not path.is_file():
+            continue
+
+        try:
+
+            size =
+                path.stat().st_size
+
+        except Exception:
+
+            size = 0
+
+
+        result.append({
+
+            "name":
+                path.name,
+
+            "size":
+                size
+
+        })
+
+
+    result.sort(
+        key=lambda x:
+        x["name"].lower()
+    )
+
+
+    return jsonify({
+
+        "ok": True,
+
+        "files":
+            result
+
+    })
+
+
+# ============================================================
+# 不提供下载
+# 不提供删除
+# ============================================================
+
+
+@app.errorhandler(
+    413
+)
+def too_large(error):
+
+    return jsonify({
+
+        "ok": False,
+
+        "error":
+            "请求或文件超过服务器允许大小"
+
+    }), 413
+
+
+# ============================================================
+# 启动
+# ============================================================
+
+if __name__ == "__main__":
+
+    print()
+    print(
+        "服务器根目录："
+    )
+    print(
+        BASE_DIR
+    )
+
+    print()
+    print(
+        "最大文件：10 GB"
+    )
+
+    print(
+        "分片大小："
+        + str(
+            CHUNK_SIZE // 1024 // 1024
+        )
+        + " MB"
+    )
+
+    print()
+
+    app.run(
+        host="0.0.0.0",
+        port=5001,
+        threaded=True
+    )
