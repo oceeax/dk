@@ -2,592 +2,2139 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 
-<title>Loading...</title>
+<title>服务器真实访问测速</title>
 
 <style>
 *{
-    margin:0;
-    padding:0;
     box-sizing:border-box;
 }
 
 html,body{
-    width:100%;
-    height:100%;
+    margin:0;
+    min-height:100%;
+    background:#020806;
 }
 
 body{
-    background:#111;
-    color:#fff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:#d9eee1;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+
+    background:
+        radial-gradient(
+            circle at 50% 0%,
+            #123522 0,
+            #07120c 35%,
+            #020806 80%
+        );
 }
 
-.loading{
+.container{
+    width:96%;
+    max-width:1450px;
+    margin:18px auto 30px;
+}
+
+h1{
+    margin:8px 0 5px;
     text-align:center;
+    font-size:25px;
+    color:#e0fff0;
+    letter-spacing:1px;
+    text-shadow:0 0 12px rgba(0,255,120,.35);
 }
 
-.loading-text{
-    font-size:22px;
-    margin-bottom:20px;
+.subtitle{
+    text-align:center;
+    color:#638071;
+    font-size:12px;
+    margin-bottom:18px;
 }
 
-.spinner{
-    width:42px;
-    height:42px;
-    border:4px solid #333;
-    border-top:4px solid #2563eb;
+.panel{
+    margin-bottom:15px;
+    padding:15px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(10,27,18,.97),
+            rgba(3,11,7,.97)
+        );
+
+    border:1px solid #16452d;
+    border-radius:12px;
+
+    box-shadow:
+        0 0 20px rgba(0,255,100,.04),
+        inset 0 0 30px rgba(0,255,100,.02);
+}
+
+label{
+    display:block;
+    margin-bottom:8px;
+
+    color:#9bc5aa;
+    font-size:13px;
+}
+
+textarea{
+    width:100%;
+    min-height:150px;
+    resize:vertical;
+
+    padding:12px;
+
+    border:1px solid #1b5535;
+    border-radius:8px;
+
+    outline:none;
+
+    color:#72ffa5;
+    background:#020a06;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    font-size:13px;
+    line-height:1.7;
+
+    box-shadow:
+        inset 0 0 18px rgba(0,255,100,.035);
+}
+
+textarea:focus{
+    border-color:#35bd6d;
+
+    box-shadow:
+        0 0 12px rgba(0,255,100,.12),
+        inset 0 0 18px rgba(0,255,100,.04);
+}
+
+.hint{
+    margin-top:7px;
+    color:#536a5b;
+    font-size:11px;
+    line-height:1.6;
+}
+
+button{
+    width:100%;
+    padding:14px;
+    margin-top:12px;
+
+    border:1px solid #25a95f;
+    border-radius:9px;
+
+    color:#eafff2;
+
+    background:
+        linear-gradient(
+            180deg,
+            #0d7c43,
+            #064b29
+        );
+
+    font-size:16px;
+    font-weight:bold;
+
+    cursor:pointer;
+
+    box-shadow:
+        0 0 14px rgba(0,255,100,.12);
+
+    transition:.2s;
+}
+
+button:hover{
+    box-shadow:
+        0 0 25px rgba(0,255,100,.28);
+}
+
+button:active{
+    transform:scale(.99);
+}
+
+button:disabled{
+    color:#69786f;
+
+    border-color:#35463c;
+
+    background:
+        linear-gradient(
+            180deg,
+            #26342c,
+            #19221d
+        );
+
+    box-shadow:none;
+
+    cursor:not-allowed;
+}
+
+.download-btn{
+    background:
+        linear-gradient(
+            180deg,
+            #17462d,
+            #0c2719
+        );
+
+    border-color:#287c4b;
+
+    font-size:14px;
+}
+
+.status{
+    margin-top:12px;
+
+    text-align:center;
+
+    color:#6effa1;
+
+    font-size:14px;
+
+    text-shadow:
+        0 0 8px rgba(0,255,120,.25);
+}
+
+.info{
+    margin-top:7px;
+
+    color:#668071;
+
+    font-size:12px;
+
+    word-break:break-all;
+}
+
+
+/* 汇总 */
+
+.grid{
+    display:grid;
+
+    grid-template-columns:
+        repeat(3,1fr);
+
+    gap:10px;
+
+    margin-top:12px;
+}
+
+.card{
+    padding:12px;
+
+    border:1px solid #123522;
+    border-radius:8px;
+
+    background:rgba(2,10,6,.75);
+}
+
+.card-title{
+    color:#638070;
+    font-size:11px;
+}
+
+.card-value{
+    margin-top:5px;
+
+    color:#a9ffc6;
+
+    font-size:18px;
+    font-weight:bold;
+
+    text-shadow:
+        0 0 8px rgba(0,255,120,.15);
+}
+
+
+/* 日志 */
+
+.log-head{
+    display:flex;
+
+    align-items:center;
+    justify-content:space-between;
+
+    margin-bottom:10px;
+}
+
+.log-head-left{
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+}
+
+.dot{
+    width:9px;
+    height:9px;
+
     border-radius:50%;
-    animation:spin .8s linear infinite;
-    margin:auto;
+
+    background:#3cff89;
+
+    box-shadow:
+        0 0 7px #3cff89,
+        0 0 16px rgba(60,255,137,.7);
+
+    animation:pulse 1s infinite;
 }
 
-@keyframes spin{
+@keyframes pulse{
+    0%,100%{
+        opacity:.45;
+        transform:scale(.8);
+    }
+
+    50%{
+        opacity:1;
+        transform:scale(1.15);
+    }
+}
+
+.live{
+    color:#4fff93;
+
+    font-size:10px;
+
+    letter-spacing:2px;
+
+    animation:blink 1.2s infinite;
+}
+
+@keyframes blink{
+    0%,100%{opacity:.45;}
+    50%{opacity:1;}
+}
+
+.log{
+    position:relative;
+
+    height:270px;
+
+    overflow-y:auto;
+
+    padding:11px;
+
+    border:1px solid #14512f;
+    border-radius:8px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #000c07,
+            #020805
+        );
+
+    color:#59ff99;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    font-size:12px;
+    line-height:1.7;
+
+    box-shadow:
+        inset 0 0 25px rgba(0,255,100,.04);
+}
+
+.log-line{
+    opacity:0;
+
+    animation:
+        appear .2s forwards;
+}
+
+@keyframes appear{
+    from{
+        opacity:0;
+        transform:translateX(-4px);
+    }
+
     to{
-        transform:rotate(360deg);
+        opacity:1;
+        transform:translateX(0);
+    }
+}
+
+.log-ok{
+    color:#58ff98;
+}
+
+.log-error{
+    color:#ff6969;
+}
+
+.log-current{
+    color:#b7ffd0;
+}
+
+
+/* 表格 */
+
+.table-wrap{
+    overflow-x:auto;
+    margin-top:10px;
+}
+
+table{
+    width:100%;
+    min-width:1400px;
+    border-collapse:collapse;
+}
+
+th,
+td{
+    padding:8px 6px;
+
+    border-bottom:
+        1px solid #143022;
+
+    text-align:center;
+
+    white-space:nowrap;
+}
+
+th{
+    color:#60796b;
+
+    font-size:11px;
+    font-weight:normal;
+}
+
+td{
+    color:#c4d9cb;
+    font-size:11px;
+}
+
+.file{
+    max-width:250px;
+
+    overflow:hidden;
+
+    text-overflow:ellipsis;
+
+    text-align:left;
+}
+
+.ok{
+    color:#57ff98;
+}
+
+.err{
+    color:#ff6969;
+}
+
+
+/* 手机 */
+
+@media(max-width:650px){
+
+    .container{
+        width:97%;
+        margin-top:10px;
+    }
+
+    h1{
+        font-size:21px;
+    }
+
+    .grid{
+        grid-template-columns:
+            repeat(2,1fr);
+    }
+
+    .card-value{
+        font-size:15px;
+    }
+
+    .log{
+        height:230px;
+        font-size:10px;
     }
 }
 </style>
 </head>
 
+
 <body>
 
-<div class="loading">
-    <div class="loading-text">Loading...</div>
-    <div class="spinner"></div>
+<div class="container">
+
+<h1>服务器真实访问测速</h1>
+
+<div class="subtitle">
+    纯前端 · 输入什么测什么 · 实际请求服务器文件
 </div>
+
+
+<!-- 文件输入 -->
+
+<div class="panel">
+
+<label>
+    测试文件列表（一行一个）
+</label>
+
+<textarea
+    id="fileInput"
+    spellcheck="false"
+    placeholder="例如：
+shzh.jpg
+shhzx3.zip
+123.txt
+500m.zip
+abc.pdf
+video.mp4"></textarea>
+
+<div class="hint">
+    文件必须位于当前 HTML 所在目录，或者填写相对路径。<br>
+    例如：shzh.jpg、test/abc.zip、../file.zip
+</div>
+
+<button
+    id="startBtn"
+    onclick="startTest()">
+    开始测试
+</button>
+
+<button
+    id="downloadBtn"
+    class="download-btn"
+    onclick="downloadLog()"
+    disabled>
+    下载测试日志
+</button>
+
+<div
+    id="status"
+    class="status">
+    等待开始
+</div>
+
+<div class="info">
+    当前基础地址：
+    <span id="baseUrl"></span>
+</div>
+
+<div class="info">
+    待测试文件：
+    <span id="fileCount">0</span>
+</div>
+
+</div>
+
+
+<!-- 汇总 -->
+
+<div class="panel">
+
+<strong>测试汇总</strong>
+
+<div class="grid">
+
+<div class="card">
+<div class="card-title">文件数</div>
+<div class="card-value" id="sCount">0</div>
+</div>
+
+<div class="card">
+<div class="card-title">平均接入</div>
+<div class="card-value" id="sConnect">--</div>
+</div>
+
+<div class="card">
+<div class="card-title">平均打开 / TTFB</div>
+<div class="card-value" id="sTTFB">--</div>
+</div>
+
+<div class="card">
+<div class="card-title">平均下载</div>
+<div class="card-value" id="sDownload">--</div>
+</div>
+
+<div class="card">
+<div class="card-title">平均总耗时</div>
+<div class="card-value" id="sTotal">--</div>
+</div>
+
+<div class="card">
+<div class="card-title">总数据量</div>
+<div class="card-value" id="sSize">--</div>
+</div>
+
+<div class="card">
+<div class="card-title">总下载时间</div>
+<div class="card-value" id="sTime">--</div>
+</div>
+
+<div class="card">
+<div class="card-title">综合速度</div>
+<div class="card-value" id="sSpeed">--</div>
+</div>
+
+<div class="card">
+<div class="card-title">成功 / 失败</div>
+<div class="card-value" id="sOK">
+    0 / 0
+</div>
+</div>
+
+</div>
+
+</div>
+
+
+<!-- 详细结果 -->
+
+<div class="panel">
+
+<strong>详细测试结果</strong>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+<th>#</th>
+<th>文件</th>
+<th>大小</th>
+<th>点击时间</th>
+<th>访问时间</th>
+<th>接入</th>
+<th>打开 / TTFB</th>
+<th>下载</th>
+<th>关闭时间</th>
+<th>总耗时</th>
+<th>速度</th>
+<th>状态</th>
+</tr>
+
+</thead>
+
+<tbody id="resultBody"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+<!-- 实时日志 -->
+
+<div class="panel">
+
+<div class="log-head">
+
+<div class="log-head-left">
+
+<div class="dot"></div>
+
+<strong>
+实时测试日志
+</strong>
+
+</div>
+
+<div class="live">
+LIVE
+</div>
+
+</div>
+
+<div
+    id="log"
+    class="log">
+</div>
+
+</div>
+
+</div>
+
 
 <script>
 
-/*
-==================================================
-三个 IP 定位服务
-==================================================
-*/
+/* ==============================================
+   基础地址
+============================================== */
 
-async function getIPWho(){
+const basePath =
+    location.href.substring(
+        0,
+        location.href.lastIndexOf("/") + 1
+    );
+
+document.getElementById(
+    "baseUrl"
+).textContent =
+    basePath;
+
+
+/* ==============================================
+   数据
+============================================== */
+
+let files = [];
+let results = [];
+let logs = [];
+
+
+/* ==============================================
+   时间
+============================================== */
+
+function clock(){
+
+    const d =
+        new Date();
+
+    return (
+        String(d.getHours()).padStart(2,"0") +
+        ":" +
+        String(d.getMinutes()).padStart(2,"0") +
+        ":" +
+        String(d.getSeconds()).padStart(2,"0") +
+        "." +
+        String(d.getMilliseconds()).padStart(3,"0")
+    );
+}
+
+
+/* ==============================================
+   日志
+============================================== */
+
+function log(text,type=""){
+
+    const line =
+        "[" +
+        clock() +
+        "] " +
+        text;
+
+    logs.push(line);
+
+    const box =
+        document.getElementById("log");
+
+    const div =
+        document.createElement("div");
+
+    div.className =
+        "log-line " +
+        (
+            type === "ok"
+                ? "log-ok"
+                : type === "error"
+                ? "log-error"
+                : type === "current"
+                ? "log-current"
+                : ""
+        );
+
+    div.textContent =
+        line;
+
+    box.appendChild(div);
+
+    box.scrollTop =
+        box.scrollHeight;
+}
+
+
+/* ==============================================
+   文件大小
+============================================== */
+
+function formatSize(bytes){
+
+    if(
+        !Number.isFinite(bytes)
+    ){
+        return "--";
+    }
+
+    if(bytes < 1024){
+
+        return (
+            bytes.toFixed(0) +
+            " B"
+        );
+    }
+
+    if(bytes < 1024*1024){
+
+        return (
+            (
+                bytes / 1024
+            ).toFixed(2) +
+            " KB"
+        );
+    }
+
+    if(bytes < 1024*1024*1024){
+
+        return (
+            (
+                bytes /
+                1024 /
+                1024
+            ).toFixed(2) +
+            " MB"
+        );
+    }
+
+    return (
+        (
+            bytes /
+            1024 /
+            1024 /
+            1024
+        ).toFixed(2) +
+        " GB"
+    );
+}
+
+
+/* ==============================================
+   毫秒
+============================================== */
+
+function ms(value){
+
+    if(
+        !Number.isFinite(value)
+    ){
+        return "--";
+    }
+
+    return (
+        value.toFixed(2) +
+        " ms"
+    );
+}
+
+
+/* ==============================================
+   速度
+============================================== */
+
+function speed(
+    bytes,
+    milliseconds
+){
+
+    if(
+        !bytes ||
+        !milliseconds ||
+        milliseconds <= 0
+    ){
+        return "--";
+    }
+
+    const bytesSec =
+        bytes /
+        (milliseconds / 1000);
+
+    const MB =
+        bytesSec /
+        1024 /
+        1024;
+
+    const Mbps =
+        bytesSec *
+        8 /
+        1000 /
+        1000;
+
+    return (
+        MB.toFixed(2) +
+        " MB/s (" +
+        Mbps.toFixed(2) +
+        " Mbps)"
+    );
+}
+
+
+/* ==============================================
+   等待
+============================================== */
+
+function sleep(t){
+
+    return new Promise(
+        resolve =>
+            setTimeout(
+                resolve,
+                t
+            )
+    );
+}
+
+
+/* ==============================================
+   生成URL
+
+   加随机参数防止缓存。
+
+   例如：
+
+   shzh.jpg
+   ↓
+   /shzh.jpg?speedtest=xxxxx
+
+============================================== */
+
+function makeURL(file){
+
+    const separator =
+        file.includes("?")
+            ? "&"
+            : "?";
+
+    return (
+        basePath +
+        file +
+        separator +
+        "speedtest=" +
+        Date.now() +
+        "_" +
+        Math.random()
+            .toString(36)
+            .substring(2)
+    );
+}
+
+
+/* ==============================================
+   解析输入
+============================================== */
+
+function getFiles(){
+
+    const input =
+        document.getElementById(
+            "fileInput"
+        ).value;
+
+    const list =
+        input
+        .split(/\r?\n/)
+        .map(
+            x => x.trim()
+        )
+        .filter(
+            x => x.length > 0
+        );
+
+    /*
+    去重
+    */
+
+    return [
+        ...new Set(list)
+    ];
+}
+
+
+/* ==============================================
+   Resource Timing
+
+   找到当前请求对应的性能记录
+============================================== */
+
+function getTiming(url){
 
     try{
 
-        const r = await fetch(
-            "https://ipwho.is/",
-            {
-                cache:"no-store"
-            }
-        );
-
-        if(!r.ok){
-            throw new Error("IPWho.is HTTP error");
-        }
-
-        const d = await r.json();
-
-        if(d.success === false){
-            throw new Error("IPWho.is failed");
-        }
-
-        return {
-            name:"IPWho.is",
-
-            ip:d.ip || "",
-
-            countryCode:d.country_code || "",
-
-            country:d.country || "",
-
-            region:d.region || "",
-
-            city:d.city || ""
-        };
-
-    }catch(e){
-
-        console.error(
-            "IPWho.is:",
-            e
-        );
-
-        return null;
-    }
-}
-
-
-async function getIPApi(){
-
-    try{
-
-        const r = await fetch(
-            "https://ipapi.co/json/",
-            {
-                cache:"no-store"
-            }
-        );
-
-        if(!r.ok){
-            throw new Error("ipapi HTTP error");
-        }
-
-        const d = await r.json();
-
-        if(d.error){
-            throw new Error(
-                d.reason || "ipapi failed"
+        const entries =
+            performance.getEntriesByType(
+                "resource"
             );
-        }
 
-        return {
-            name:"ipapi.co",
-
-            ip:d.ip || "",
-
-            countryCode:d.country_code || "",
-
-            country:d.country_name || "",
-
-            region:d.region || "",
-
-            city:d.city || ""
-        };
-
-    }catch(e){
-
-        console.error(
-            "ipapi.co:",
-            e
-        );
-
-        return null;
-    }
-}
-
-
-/*
- * 第三个服务
- *
- * ipwhois.app
- */
-
-async function getIPWhoisApp(){
-
-    try{
-
-        const r = await fetch(
-            "https://ipwhois.app/json/",
-            {
-                cache:"no-store"
-            }
-        );
-
-        if(!r.ok){
-            throw new Error(
-                "ipwhois.app HTTP error"
-            );
-        }
-
-        const d = await r.json();
-
-        if(d.success === false){
-            throw new Error(
-                "ipwhois.app failed"
-            );
-        }
-
-        return {
-            name:"ipwhois.app",
-
-            ip:d.ip || "",
-
-            countryCode:d.country_code || "",
-
-            country:d.country || "",
-
-            region:d.region || "",
-
-            city:d.city || ""
-        };
-
-    }catch(e){
-
-        console.error(
-            "ipwhois.app:",
-            e
-        );
-
-        return null;
-    }
-}
-
-
-/*
-==================================================
-标准化字符串
-==================================================
-*/
-
-function norm(value){
-
-    return String(value || "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g," ");
-}
-
-
-/*
-==================================================
-两家一致才采用
-==================================================
-*/
-
-function getTwoSame(results, field){
-
-    const values = results
-        .map(x => x && x[field])
-        .filter(Boolean);
-
-    if(values.length < 2){
-        return null;
-    }
-
-
-    for(let i = 0; i < values.length; i++){
+        /*
+        因为URL有随机参数，
+        直接找完全一致的URL。
+        */
 
         for(
-            let j = i + 1;
-            j < values.length;
-            j++
+            let i = entries.length - 1;
+            i >= 0;
+            i--
         ){
 
+            const e =
+                entries[i];
+
             if(
-                norm(values[i]) ===
-                norm(values[j])
+                e.name === url
+            ){
+                return e;
+            }
+        }
+
+    }
+    catch(e){}
+
+    return null;
+}
+
+
+/* ==============================================
+   测试单个文件
+============================================== */
+
+async function testFile(
+    file,
+    index
+){
+
+    /*
+    点击时间
+
+    这是本次测试按钮触发后，
+    当前文件准备开始测试的时间。
+
+    */
+
+    const clickPerformance =
+        performance.now();
+
+    const clickTime =
+        clock();
+
+
+    /*
+    访问时间
+
+    fetch真正开始前的时间。
+
+    */
+
+    const accessPerformance =
+        performance.now();
+
+    const accessTime =
+        clock();
+
+
+    const url =
+        makeURL(file);
+
+
+    log(
+        "[" +
+        (index + 1) +
+        "] 请求：" +
+        file,
+        "current"
+    );
+
+
+    /*
+    真正GET。
+
+    不使用HEAD。
+
+    因为HEAD只能测试服务器是否存在，
+    不能测试真实文件下载。
+
+    */
+
+    const response =
+        await fetch(
+            url,
+            {
+                method:"GET",
+                cache:"no-store"
+            }
+        );
+
+
+    /*
+    收到HTTP响应。
+
+    */
+
+    const responsePerformance =
+        performance.now();
+
+    const responseClock =
+        clock();
+
+
+    if(
+        !response.ok
+    ){
+
+        throw new Error(
+            "HTTP " +
+            response.status
+        );
+    }
+
+
+    /*
+    Resource Timing
+
+    获取浏览器能提供的：
+
+    DNS
+    TCP
+    TLS
+    请求
+    TTFB
+    下载
+
+    */
+
+    let connect = null;
+    let ttfb = null;
+
+
+    /*
+    读取文件正文。
+
+    使用stream。
+
+    因此大文件不会直接：
+
+    await response.arrayBuffer()
+
+    一次性占满内存。
+
+    */
+
+    let bytes = 0;
+
+
+    if(
+        response.body
+    ){
+
+        const reader =
+            response.body.getReader();
+
+
+        while(true){
+
+            const part =
+                await reader.read();
+
+
+            if(
+                part.done
+            ){
+                break;
+            }
+
+
+            if(
+                part.value
             ){
 
-                return values[i];
+                bytes +=
+                    part.value.byteLength;
             }
+        }
+
+    }
+    else{
+
+        const buffer =
+            await response.arrayBuffer();
+
+        bytes =
+            buffer.byteLength;
+    }
+
+
+    /*
+    文件全部收到。
+
+    */
+
+    const closePerformance =
+        performance.now();
+
+    const closeTime =
+        clock();
+
+
+    /*
+    尝试取得浏览器
+    Resource Timing。
+
+    */
+
+    const timing =
+        getTiming(url);
+
+
+    if(
+        timing
+    ){
+
+        /*
+        connection time
+
+        注意：
+        浏览器实际能暴露多少，
+        取决于同源/跨域以及
+        Timing-Allow-Origin。
+
+        */
+
+        if(
+            Number.isFinite(
+                timing.connectStart
+            ) &&
+            Number.isFinite(
+                timing.connectEnd
+            )
+        ){
+
+            connect =
+                timing.connectEnd -
+                timing.connectStart;
+        }
+
+
+        /*
+        TTFB
+
+        responseStart -
+        request start
+        */
+
+        if(
+            Number.isFinite(
+                timing.responseStart
+            )
+        ){
+
+            ttfb =
+                timing.responseStart -
+                timing.startTime;
         }
     }
 
 
     /*
-     * 三家全部不同
-     */
-    return null;
+    如果没有Resource Timing，
+
+    用实际fetch等待时间
+    作为可观测的响应时间。
+
+    */
+
+    if(
+        ttfb === null
+    ){
+
+        ttfb =
+            responsePerformance -
+            accessPerformance;
+    }
+
+
+    /*
+    下载耗时：
+
+    收到响应
+    ↓
+    文件全部读取完成
+
+    */
+
+    const download =
+        closePerformance -
+        responsePerformance;
+
+
+    /*
+    总耗时：
+
+    发起访问
+    ↓
+    文件完整读取
+    */
+
+    const total =
+        closePerformance -
+        accessPerformance;
+
+
+    const result = {
+
+        index:
+            index + 1,
+
+        file:
+            file,
+
+        size:
+            bytes,
+
+        clickTime:
+            clickTime,
+
+        accessTime:
+            accessTime,
+
+        connect:
+            connect,
+
+        ttfb:
+            ttfb,
+
+        openTime:
+            responseClock,
+
+        download:
+            download,
+
+        closeTime:
+            closeTime,
+
+        total:
+            total,
+
+        speed:
+            speed(
+                bytes,
+                download
+            ),
+
+        success:
+            true
+    };
+
+
+    log(
+        "完成：" +
+        file +
+        " | " +
+        formatSize(bytes) +
+        " | 接入 " +
+        ms(connect) +
+        " | TTFB " +
+        ms(ttfb) +
+        " | 下载 " +
+        ms(download) +
+        " | " +
+        result.speed,
+        "ok"
+    );
+
+
+    return result;
 }
 
 
-/*
-==================================================
-开始定位
-==================================================
-*/
+/* ==============================================
+   添加结果
+============================================== */
 
-(async function(){
+function addResult(r){
 
-    try{
-
-        /*
-         * 三家同时查询
-         */
-        const all = await Promise.all([
-            getIPWho(),
-            getIPApi(),
-            getIPWhoisApp()
-        ]);
-
-
-        /*
-         * 只保留成功的
-         */
-        const results =
-            all.filter(Boolean);
-
-
-        console.log(
-            "三个平台原始结果：",
-            results
+    const tbody =
+        document.getElementById(
+            "resultBody"
         );
 
 
-        /*
-         * 少于两家成功
-         * 无法交叉验证
-         */
-        if(results.length < 2){
-
-            console.warn(
-                "少于两个定位服务成功，定位作废"
-            );
-
-            location.replace(
-                "other/"
-            );
+    const tr =
+        document.createElement("tr");
 
-            return;
-        }
 
+    if(
+        r.success
+    ){
 
-        /*
-         * ==========================================
-         * 国家
-         * ==========================================
-         */
+        tr.innerHTML = `
 
-        const countryCode =
-            getTwoSame(
-                results,
-                "countryCode"
-            );
+<td>${r.index}</td>
 
+<td class="file"
+    title="${escapeHTML(r.file)}">
+    ${escapeHTML(r.file)}
+</td>
 
-        /*
-         * 国家都不一致
-         */
-        if(!countryCode){
+<td>
+    ${formatSize(r.size)}
+</td>
 
-            console.warn(
-                "三个平台国家无法达成一致，定位作废"
-            );
+<td>
+    ${r.clickTime}
+</td>
 
-            location.replace(
-                "other/"
-            );
+<td>
+    ${r.accessTime}
+</td>
 
-            return;
-        }
+<td>
+    ${ms(r.connect)}
+</td>
 
+<td>
+    ${ms(r.ttfb)}
+</td>
 
-        /*
-         * ==========================================
-         * 省 / 州
-         * ==========================================
-         */
+<td>
+    ${ms(r.download)}
+</td>
 
-        const region =
-            getTwoSame(
-                results,
-                "region"
-            );
+<td>
+    ${r.closeTime}
+</td>
 
+<td>
+    ${ms(r.total)}
+</td>
 
-        /*
-         * ==========================================
-         * 城市
-         * ==========================================
-         */
+<td>
+    ${r.speed}
+</td>
 
-        const city =
-            getTwoSame(
-                results,
-                "city"
-            );
+<td class="ok">
+    成功
+</td>
 
-
-        /*
-         * 控制台显示结果
-         */
-
-        console.log(
-            "================================"
-        );
-
-        console.log(
-            "最终国家代码:",
-            countryCode
-        );
-
-        console.log(
-            "最终省/州:",
-            region || "作废"
-        );
-
-        console.log(
-            "最终城市:",
-            city || "作废"
-        );
-
-        console.log(
-            "================================"
-        );
-
-
-        /*
-         * ==========================================
-         * 根据国家跳转
-         * ==========================================
-         */
-
-        let target = "other/";
-
-
-        /*
-         * 马来西亚
-         */
-
-        if(
-            norm(countryCode) === "my"
-        ){
-
-            /*
-             * 有两家省/州一致
-             */
-
-            if(region){
-
-                const r =
-                    norm(region);
-
-
-                if(r === "selangor"){
-
-                    target =
-                        "malaysia/selangor/";
-
-                }
-
-                else if(r === "johor"){
-
-                    target =
-                        "malaysia/johor/";
-
-                }
-
-                else if(r === "penang"){
-
-                    target =
-                        "malaysia/penang/";
-
-                }
-
-                else{
-
-                    target =
-                        "malaysia/";
-                }
-
-            }
-
-            else{
-
-                /*
-                 * 国家确定，
-                 * 省州无法确定
-                 */
-                target =
-                    "malaysia/";
-            }
-
-        }
-
-
-        /*
-         * ==========================================
-         * 泰国
-         * ==========================================
-         */
-
-        else if(
-            norm(countryCode) === "th"
-        ){
-
-            if(region){
-
-                const r =
-                    norm(region);
-
-
-                if(r === "bangkok"){
-
-                    target =
-                        "thailand/bangkok/";
-
-                }
-
-                else if(
-                    r === "chiang mai"
-                ){
-
-                    target =
-                        "thailand/chiang-mai/";
-
-                }
-
-                else if(
-                    r === "phuket"
-                ){
-
-                    target =
-                        "thailand/phuket/";
-
-                }
-
-                else{
-
-                    target =
-                        "thailand/";
-                }
-
-            }
-
-            else{
-
-                target =
-                    "thailand/";
-            }
-
-        }
-
-
-        /*
-         * 其他国家
-         */
-
-        else{
-
-            target =
-                "other/";
-        }
-
-
-        /*
-         * ==========================================
-         * 最终结果
-         * ==========================================
-         */
-
-        console.log(
-            "最终跳转:",
-            target
-        );
-
-
-        /*
-         * 防止页面停留
-         */
-
-        location.replace(target);
-
-
-    }catch(e){
-
-        console.error(
-            "定位程序错误:",
-            e
-        );
-
-        location.replace(
-            "other/"
-        );
+`;
 
     }
+    else{
 
-})();
+        tr.innerHTML = `
+
+<td>${r.index}</td>
+
+<td class="file">
+    ${escapeHTML(r.file)}
+</td>
+
+<td>--</td>
+<td>--</td>
+<td>--</td>
+<td>--</td>
+<td>--</td>
+<td>--</td>
+<td>--</td>
+<td>--</td>
+<td>--</td>
+
+<td class="err">
+    ${escapeHTML(r.error)}
+</td>
+
+`;
+    }
+
+
+    tbody.appendChild(tr);
+}
+
+
+/* ==============================================
+   平均
+============================================== */
+
+function average(values){
+
+    const valid =
+        values.filter(
+            x =>
+                Number.isFinite(x)
+        );
+
+    if(
+        valid.length === 0
+    ){
+        return null;
+    }
+
+    return (
+        valid.reduce(
+            (a,b) => a + b,
+            0
+        ) /
+        valid.length
+    );
+}
+
+
+/* ==============================================
+   汇总
+============================================== */
+
+function summary(){
+
+    const ok =
+        results.filter(
+            r =>
+                r.success
+        );
+
+
+    const fail =
+        results.length -
+        ok.length;
+
+
+    document.getElementById(
+        "sCount"
+    ).textContent =
+        results.length;
+
+
+    document.getElementById(
+        "sOK"
+    ).textContent =
+        ok.length +
+        " / " +
+        fail;
+
+
+    if(
+        ok.length === 0
+    ){
+        return;
+    }
+
+
+    const avgConnect =
+        average(
+            ok.map(
+                r => r.connect
+            )
+        );
+
+
+    const avgTTFB =
+        average(
+            ok.map(
+                r => r.ttfb
+            )
+        );
+
+
+    const avgDownload =
+        average(
+            ok.map(
+                r => r.download
+            )
+        );
+
+
+    const avgTotal =
+        average(
+            ok.map(
+                r => r.total
+            )
+        );
+
+
+    const totalBytes =
+        ok.reduce(
+            (sum,r) =>
+                sum + r.size,
+            0
+        );
+
+
+    const totalDownload =
+        ok.reduce(
+            (sum,r) =>
+                sum + r.download,
+            0
+        );
+
+
+    document.getElementById(
+        "sConnect"
+    ).textContent =
+        ms(avgConnect);
+
+
+    document.getElementById(
+        "sTTFB"
+    ).textContent =
+        ms(avgTTFB);
+
+
+    document.getElementById(
+        "sDownload"
+    ).textContent =
+        ms(avgDownload);
+
+
+    document.getElementById(
+        "sTotal"
+    ).textContent =
+        ms(avgTotal);
+
+
+    document.getElementById(
+        "sSize"
+    ).textContent =
+        formatSize(totalBytes);
+
+
+    document.getElementById(
+        "sTime"
+    ).textContent =
+        ms(totalDownload);
+
+
+    document.getElementById(
+        "sSpeed"
+    ).textContent =
+        speed(
+            totalBytes,
+            totalDownload
+        );
+}
+
+
+/* ==============================================
+   开始
+============================================== */
+
+async function startTest(){
+
+    const startBtn =
+        document.getElementById(
+            "startBtn"
+        );
+
+    const downloadBtn =
+        document.getElementById(
+            "downloadBtn"
+        );
+
+    const status =
+        document.getElementById(
+            "status"
+        );
+
+
+    /*
+    获取输入
+    */
+
+    files =
+        getFiles();
+
+
+    if(
+        files.length === 0
+    ){
+
+        alert(
+            "请至少输入一个文件名。"
+        );
+
+        return;
+    }
+
+
+    /*
+    清空
+    */
+
+    results = [];
+    logs = [];
+
+
+    document.getElementById(
+        "resultBody"
+    ).innerHTML =
+        "";
+
+    document.getElementById(
+        "log"
+    ).innerHTML =
+        "";
+
+
+    document.getElementById(
+        "fileCount"
+    ).textContent =
+        files.length;
+
+
+    document.getElementById(
+        "sCount"
+    ).textContent =
+        files.length;
+
+
+    document.getElementById(
+        "sOK"
+    ).textContent =
+        "0 / 0";
+
+
+    [
+        "sConnect",
+        "sTTFB",
+        "sDownload",
+        "sTotal",
+        "sSize",
+        "sTime",
+        "sSpeed"
+    ].forEach(
+        id => {
+
+            document.getElementById(
+                id
+            ).textContent =
+                "--";
+        }
+    );
+
+
+    startBtn.disabled =
+        true;
+
+    downloadBtn.disabled =
+        true;
+
+
+    log(
+        "========================================",
+        "current"
+    );
+
+    log(
+        "服务器真实访问测速开始",
+        "current"
+    );
+
+    log(
+        "测试地址：" +
+        basePath,
+        "current"
+    );
+
+    log(
+        "共 " +
+        files.length +
+        " 个文件",
+        "current"
+    );
+
+
+    /*
+    按顺序测试。
+
+    不同时请求。
+
+    这样更加适合观察
+    单个文件真实访问过程。
+
+    */
+
+    for(
+        let i = 0;
+        i < files.length;
+        i++
+    ){
+
+        const file =
+            files[i];
+
+
+        status.textContent =
+            "测试 " +
+            (i + 1) +
+            " / " +
+            files.length +
+            "：" +
+            file;
+
+
+        try{
+
+            const result =
+                await testFile(
+                    file,
+                    i
+                );
+
+
+            results.push(result);
+
+            addResult(result);
+
+        }
+        catch(e){
+
+            const result = {
+
+                index:
+                    i + 1,
+
+                file:
+                    file,
+
+                success:
+                    false,
+
+                error:
+                    e.message
+            };
+
+
+            results.push(result);
+
+            addResult(result);
+
+
+            log(
+                "失败：" +
+                file +
+                " | " +
+                e.message,
+                "error"
+            );
+        }
+
+
+        /*
+        文件之间间隔120ms。
+        */
+
+        await sleep(120);
+    }
+
+
+    /*
+    完成后等待10秒再汇总。
+
+    */
+
+    status.textContent =
+        "测试完成，10 秒后汇总……";
+
+
+    log(
+        "全部文件测试完成。",
+        "ok"
+    );
+
+
+    for(
+        let i = 10;
+        i > 0;
+        i--
+    ){
+
+        status.textContent =
+            "测试完成，" +
+            i +
+            " 秒后汇总……";
+
+
+        await sleep(1000);
+    }
+
+
+    summary();
+
+
+    status.textContent =
+        "测试完成，汇总已生成";
+
+
+    log(
+        "========================================",
+        "current"
+    );
+
+    log(
+        "最终汇总完成。",
+        "ok"
+    );
+
+
+    startBtn.disabled =
+        false;
+
+    downloadBtn.disabled =
+        false;
+}
+
+
+/* ==============================================
+   下载日志
+============================================== */
+
+function downloadLog(){
+
+    let text = "";
+
+
+    text +=
+        "服务器真实访问测速日志\n";
+
+    text +=
+        "========================================\n";
+
+    text +=
+        "生成时间：" +
+        new Date().toLocaleString() +
+        "\n";
+
+    text +=
+        "基础地址：" +
+        basePath +
+        "\n";
+
+    text +=
+        "文件数量：" +
+        files.length +
+        "\n";
+
+
+    text +=
+        "\n测试文件：\n";
+
+    files.forEach(
+        (file,i) => {
+
+            text +=
+                (i + 1) +
+                ". " +
+                file +
+                "\n";
+        }
+    );
+
+
+    text +=
+        "\n\n详细结果\n";
+
+    text +=
+        "========================================\n";
+
+
+    results.forEach(
+        r => {
+
+            text +=
+                "\n";
+
+            text +=
+                "文件：" +
+                r.file +
+                "\n";
+
+
+            if(
+                r.success
+            ){
+
+                text +=
+                    "大小：" +
+                    formatSize(r.size) +
+                    "\n";
+
+                text +=
+                    "点击时间：" +
+                    r.clickTime +
+                    "\n";
+
+                text +=
+                    "访问时间：" +
+                    r.accessTime +
+                    "\n";
+
+                text +=
+                    "接入：" +
+                    ms(r.connect) +
+                    "\n";
+
+                text +=
+                    "打开时间：" +
+                    r.openTime +
+                    "\n";
+
+                text +=
+                    "TTFB：" +
+                    ms(r.ttfb) +
+                    "\n";
+
+                text +=
+                    "下载耗时：" +
+                    ms(r.download) +
+                    "\n";
+
+                text +=
+                    "关闭时间：" +
+                    r.closeTime +
+                    "\n";
+
+                text +=
+                    "总耗时：" +
+                    ms(r.total) +
+                    "\n";
+
+                text +=
+                    "速度：" +
+                    r.speed +
+                    "\n";
+
+                text +=
+                    "状态：成功\n";
+
+            }
+            else{
+
+                text +=
+                    "状态：失败\n";
+
+                text +=
+                    "错误：" +
+                    r.error +
+                    "\n";
+            }
+        }
+    );
+
+
+    text +=
+        "\n\n实时日志\n";
+
+    text +=
+        "========================================\n";
+
+    text +=
+        logs.join("\n");
+
+
+    /*
+    下载TXT
+    */
+
+    const blob =
+        new Blob(
+            [
+                "\uFEFF" +
+                text
+            ],
+            {
+                type:
+                    "text/plain;charset=utf-8"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const a =
+        document.createElement("a");
+
+
+    const d =
+        new Date();
+
+
+    const filename =
+        "server-speed-" +
+        d.getFullYear() +
+        "-" +
+        String(
+            d.getMonth()+1
+        ).padStart(2,"0") +
+        "-" +
+        String(
+            d.getDate()
+        ).padStart(2,"0") +
+        "-" +
+        String(
+            d.getHours()
+        ).padStart(2,"0") +
+        String(
+            d.getMinutes()
+        ).padStart(2,"0") +
+        String(
+            d.getSeconds()
+        ).padStart(2,"0") +
+        ".txt";
+
+
+    a.href =
+        url;
+
+    a.download =
+        filename;
+
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    a.remove();
+
+
+    URL.revokeObjectURL(url);
+}
+
+
+/* ==============================================
+   HTML转义
+============================================== */
+
+function escapeHTML(text){
+
+    return String(text)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
 
 </script>
 
 </body>
-</html>
+    </html>
