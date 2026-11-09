@@ -1,0 +1,9 @@
+nohup: ignoring input
+============================================================
+baeb.py —— 系统电量采集 → battery1.csv
+CSV：   /opt/bat/hz/battery1.csv
+间隔：   15s   保留：30 条
+调试：   GET http://127.0.0.1:8766/api/battery
+未找到 /sys/class/power_supply/BAT*，将尝试 Termux API / dumpsys
+============================================================
+[错误] 端口 8766 已被占用，执行: fuser -k 8766/tcp

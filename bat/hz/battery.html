@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>手机电量监测</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111827;color:#f9fafb;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+main{text-align:center;padding:28px;width:100%}#level{font-size:clamp(64px,18vw,120px);font-weight:700;line-height:1.1}#clock{margin-top:22px;font-size:clamp(14px,3.8vw,19px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}#status{margin-top:14px;color:#9ca3af;font-size:14px}
+/* 给状态加点颜色区分 */
+.charging{color:#10b981!important;} .unplugged{color:#f59e0b!important;}
+</style>
+</head>
+<body>
+<main><div id="level">读取中…</div><div id="clock">时间读取中…</div><div id="status">准备连接 Termux…</div></main>
+<script>
+(() => {
+ const levelEl=document.getElementById('level');
+ const clockEl=document.getElementById('clock');
+ const statusEl=document.getElementById('status');
+ let battery=null;
+ 
+ // 用于记录刷新次数，存在 sessionStorage 中防止整页刷新后丢失
+ let refreshCount = parseInt(sessionStorage.getItem('refreshCount') || '0');
+
+ function showClock(){
+   const d=new Date(), pad=(n,w=2)=>String(n).padStart(w,'0');
+   clockEl.textContent=`${d.getFullYear()}年${pad(d.getMonth()+1)}月${pad(d.getDate())}日 ${pad(d.getHours())}点${pad(d.getMinutes())}分${pad(d.getSeconds())}秒.${pad(d.getMilliseconds(),3)}毫秒`;
+ }
+ 
+ async function refreshBattery(){
+  showClock();
+  try{
+   if(!('getBattery' in navigator)){levelEl.textContent='不可读取';statusEl.textContent='此浏览器未开放电池接口';return;}
+   if(!battery) battery=await navigator.getBattery();
+   if(typeof battery.level!=='number'){levelEl.textContent='不可读取';statusEl.textContent='浏览器未提供电量数据';return;}
+   
+   const percent=Math.round(battery.level*100);
+   const isCharging = battery.charging; // 获取是否正在充电
+   
+   levelEl.textContent=percent+'%';
+   
+   // 更新界面上的充电状态
+   if (isCharging) {
+       statusEl.className = 'charging';
+       statusEl.textContent = `⚡ 正在充电 · 准备发送...`;
+   } else {
+       statusEl.className = 'unplugged';
+       statusEl.textContent = `🔋 未在充电 · 准备发送...`;
+   }
+
+   try{
+    // 改成发送 JSON 格式，包含充电状态
+    const payload = JSON.stringify({ level: percent, charging: isCharging });
+    
+    const r=await fetch('/battery',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'}, 
+        body: payload
+    });
+    
+    if (r.ok) {
+        statusEl.textContent = `${isCharging ? '⚡ 正在充电' : '🔋 未在充电'} · 已发送到 Termux`;
+    } else {
+        statusEl.textContent = `${isCharging ? '⚡ 正在充电' : '🔋 未在充电'} · 发送失败`;
+    }
+   }catch(e){
+       statusEl.textContent='未连接 Termux，请通过 http://127.0.0.1:8765 打开';
+   }
+  }catch(e){
+      levelEl.textContent='不可读取';
+      statusEl.textContent='浏览器未允许读取电量';
+  }
+ }
+
+ // ==========================================
+ // 网页端 2 种刷新方式，每 20 秒交替一次
+ // ==========================================
+ function startAutoRefresh() {
+     setInterval(() => {
+         refreshCount++;
+         sessionStorage.setItem('refreshCount', refreshCount);
+         
+         if (refreshCount % 2 === 1) {
+             // 【方式一】：局部软刷新（只重新读取数据，页面不闪）
+             console.log("触发软刷新");
+             refreshBattery();
+         } else {
+             // 【方式二】：整页硬刷新（加时间戳强刷，页面会白屏一下）
+             console.log("触发整页硬刷新");
+             statusEl.textContent = "执行网页硬刷新...";
+             setTimeout(() => {
+                 const url = new URL(window.location.href);
+                 url.searchParams.set('t', Date.now());
+                 window.location.replace(url.toString());
+             }, 1000); // 延迟1秒跳转，让用户看到状态
+         }
+     }, 20000); 
+ }
+
+ // 初始执行
+ refreshBattery(); 
+ setInterval(showClock, 50);
+ startAutoRefresh();
+ 
+ // 切回前台时立即刷新
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshBattery();});
+})();
+</script>
+</body>
+</html>
+
+
+

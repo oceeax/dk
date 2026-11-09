@@ -1,0 +1,3 @@
+===== 启动目录守护：$DIR =====
+/opt/bat/hz/monitor.sh: line 12: syntax error near unexpected token `('
+/opt/bat/hz/monitor.sh: line 12: `        name=\$(basename "\$file")'
